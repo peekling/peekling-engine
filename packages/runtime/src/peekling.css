@@ -1,0 +1,122 @@
+:host {
+  all: initial !important;
+  position: fixed !important;
+  inset: 0 !important;
+  pointer-events: none !important;
+}
+
+:host([data-peekling-host][hidden]) {
+  display: none !important;
+}
+
+:host([data-peekling-host]) {
+  z-index: 2147483646 !important;
+  contain: strict !important;
+  overflow: hidden !important;
+}
+
+.sprite {
+  display: block;
+  position: absolute;
+  background-repeat: no-repeat;
+  transform-origin: 0 0;
+}
+
+:host([data-peekling-content]) {
+  z-index: 2147483645 !important;
+  color: var(--peekling-surface-color, #262626) !important;
+  font: 500 14px/1.4 system-ui !important;
+}
+
+.surface {
+  position: absolute;
+  box-sizing: border-box;
+  width: min(var(--peekling-surface-width, 320px), calc(100vw - 16px));
+  max-height: calc(100vh - 16px);
+  overflow: auto;
+  padding: var(--peekling-surface-padding, 12px 14px);
+  border: 1px solid var(--peekling-surface-border, #d9d9d3);
+  border-radius: var(--peekling-surface-radius, 14px);
+  background: var(--peekling-surface-background, #fafafa);
+  pointer-events: auto;
+}
+
+.title {
+  display: block;
+}
+
+.surface p {
+  margin: 0;
+}
+
+.surface a {
+  display: inline-flex;
+  min-width: 44px;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  margin-top: 6px;
+  color: var(--peekling-surface-link, #174f00);
+}
+
+.surface a:focus-visible {
+  outline: 3px solid;
+  outline-offset: 3px;
+}
+
+:host([data-peekling-controls]) {
+  z-index: 2147483647 !important;
+  color: #262626 !important;
+  font: 600 14px/1.25 system-ui !important;
+}
+
+.peekling-visibility-trigger {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  width: 64px;
+  height: 64px;
+  border: 0;
+  background: transparent;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.peekling-visibility-trigger:focus-visible {
+  opacity: 1;
+  outline: 3px solid;
+  background: #fafafa;
+}
+
+.peekling-visibility-panel {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  box-sizing: border-box;
+  width: min(272px, calc(100vw - 32px));
+  padding: 16px;
+  border: 1px solid #d9d9d3;
+  border-radius: 18px;
+  background: #fafafa;
+  pointer-events: auto;
+}
+
+.peekling-visibility-panel h2 {
+  margin: 0 0 12px;
+}
+
+.peekling-visibility-option {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+}
+
+.peekling-visibility-option:hover,
+.peekling-visibility-option:focus-visible {
+  outline: 2px solid;
+}

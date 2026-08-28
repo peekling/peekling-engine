@@ -1,0 +1,74 @@
+{
+  "name": "@peekling/runtime",
+  "version": "0.1.0",
+  "description": "Dependency-free browser runtime for interactive Peekling characters",
+  "license": "Apache-2.0",
+  "author": {
+    "name": "Prajwal S. Venkateshmurthy",
+    "url": "https://prajwal.me"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/peekling/peekling-engine.git"
+  },
+  "homepage": "https://github.com/peekling/peekling-engine#readme",
+  "bugs": {
+    "url": "https://github.com/peekling/peekling-engine/issues"
+  },
+  "type": "module",
+  "engines": {
+    "node": ">=22.14.0"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "sideEffects": [
+    "./dist/peekling.min.js"
+  ],
+  "files": [
+    "dist/**/*.js",
+    "dist/*.css",
+    "dist/*.sri",
+    "dist/**/*.d.ts",
+    "dist/**/*.d.ts.map",
+    "!dist/arbiter.*",
+    "!dist/browser.*",
+    "!dist/requests.*",
+    "README.md",
+    "LICENSE",
+    "NOTICE",
+    "AUTHORS",
+    "LICENSING.md"
+  ],
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "jsdelivr": "./dist/peekling.min.js",
+  "unpkg": "./dist/peekling.min.js",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./pack": {
+      "types": "./dist/pack-api.d.ts",
+      "import": "./dist/pack-api.js"
+    },
+    "./preflight": {
+      "types": "./dist/preflight-api.d.ts",
+      "import": "./dist/preflight-api.js"
+    },
+    "./browser": "./dist/peekling.min.js",
+    "./peekling.css": "./dist/peekling.css"
+  },
+  "dependencies": {},
+  "scripts": {
+    "build": "tsc -b",
+    "prepack": "npm --prefix ../.. run build",
+    "test": "npm run build && node --test --experimental-strip-types test/*.test.ts",
+    "typecheck": "tsc -b --pretty false"
+  },
+  "devDependencies": {
+    "typescript": "^7.0.2"
+  }
+}

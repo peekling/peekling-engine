@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Interactive surface | Peekling examples</title>
+    <link rel="stylesheet" href="../examples.css" />
+    <script defer src="/runtime/peekling.js"></script>
+    <script defer src="./app.js"></script>
+  </head>
+  <body data-review-cleanups="0">
+    <main>
+      <span class="eyebrow">Example 3</span>
+      <h1>Host-owned interactive surface</h1>
+      <p>
+        Peekling places and cleans up the surface. Host code creates its DOM,
+        owns the asynchronous work, and reports the result as a typed Event.
+      </p>
+      <p class="status" data-example-status>Starting</p>
+      <div class="controls">
+        <button type="button" data-open-review>Open review surface</button>
+        <button type="button" class="secondary" data-destroy>
+          Destroy instance
+        </button>
+      </div>
+      <section class="trace" aria-labelledby="result-heading">
+        <h2 id="result-heading">Plan result</h2>
+        <output data-review-result>Waiting for completion</output>
+      </section>
+      <nav><a href="/">Back to all examples</a></nav>
+    </main>
+  </body>
+</html>

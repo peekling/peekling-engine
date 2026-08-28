@@ -1,0 +1,63 @@
+{
+  "name": "@peekling/cli",
+  "version": "0.1.0",
+  "description": "Inspect Peekling configuration and author data-only character packs",
+  "license": "Apache-2.0",
+  "author": {
+    "name": "Prajwal S. Venkateshmurthy",
+    "url": "https://prajwal.me"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/peekling/peekling-engine.git"
+  },
+  "homepage": "https://github.com/peekling/peekling-engine#readme",
+  "bugs": {
+    "url": "https://github.com/peekling/peekling-engine/issues"
+  },
+  "type": "module",
+  "engines": {
+    "node": ">=22.14.0"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "files": [
+    "dist/**/*.js",
+    "dist/**/*.d.ts",
+    "dist/**/*.d.ts.map",
+    "README.md",
+    "LICENSE",
+    "NOTICE",
+    "AUTHORS",
+    "LICENSING.md"
+  ],
+  "bin": {
+    "peekling": "./dist/bin.js"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "dependencies": {
+    "@peekling/adapter-codex-pet": "0.1.0",
+    "@peekling/preflight": "0.1.0",
+    "@peekling/runtime": "0.1.0",
+    "pngjs": "^7.0.0"
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "prepack": "npm --prefix ../.. run build",
+    "test": "npm run build && node --test --experimental-strip-types test/*.test.ts",
+    "typecheck": "tsc -b --pretty false"
+  },
+  "devDependencies": {
+    "@types/node": "^24.3.0",
+    "typescript": "^7.0.2"
+  }
+}

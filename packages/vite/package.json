@@ -1,0 +1,60 @@
+{
+  "name": "@peekling/vite",
+  "version": "0.1.0",
+  "description": "Development-time Peekling validation for Vite projects",
+  "license": "Apache-2.0",
+  "author": {
+    "name": "Prajwal S. Venkateshmurthy",
+    "url": "https://prajwal.me"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/peekling/peekling-engine.git"
+  },
+  "homepage": "https://github.com/peekling/peekling-engine#readme",
+  "bugs": {
+    "url": "https://github.com/peekling/peekling-engine/issues"
+  },
+  "type": "module",
+  "engines": {
+    "node": ">=22.14.0"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "files": [
+    "dist/**/*.js",
+    "dist/**/*.d.ts",
+    "dist/**/*.d.ts.map",
+    "README.md",
+    "LICENSE",
+    "NOTICE",
+    "AUTHORS",
+    "LICENSING.md"
+  ],
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "dependencies": {
+    "@peekling/preflight": "0.1.0"
+  },
+  "peerDependencies": {
+    "vite": "^8.0.0"
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "prepack": "npm --prefix ../.. run build",
+    "test": "npm run build && node --test test/*.test.mjs",
+    "typecheck": "tsc -b --pretty false"
+  },
+  "devDependencies": {
+    "typescript": "^7.0.2",
+    "vite": "^8.2.2"
+  }
+}

@@ -1,0 +1,82 @@
+name: Publish Peekling packages
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Exact reviewed tag, for example v0.1.0
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: peekling-npm-release
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: npm-production
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          ref: ${{ inputs.tag }}
+      - uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v6.2.0
+        with:
+          node-version: 22.14.0
+          package-manager-cache: false
+          registry-url: https://registry.npmjs.org
+      - run: node scripts/verify-release-context.mjs "${{ inputs.tag }}"
+      - run: npm install --global npm@11.16.0
+      - run: npm ci --ignore-scripts
+      - run:
+          npx --no-install playwright install --with-deps chromium firefox
+          webkit
+      - run: npm run test:peek:published
+      - run: npm run size:release
+      - run:
+          npm run release:verify -- --tag "${{ inputs.tag }}" --archive-dir
+          artifacts/release-packages
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: ${{ always() }}
+        with:
+          name: peekling-browser-performance-${{ inputs.tag }}
+          path: |
+            artifacts/browser-performance.json
+            artifacts/release-packages/manifest.json
+            artifacts/release-packages/*.tgz
+          if-no-files-found: warn
+          retention-days: 90
+      - run:
+          node scripts/release-archives.mjs publish --directory
+          artifacts/release-packages --package @peekling/runtime
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - run:
+          node scripts/release-archives.mjs publish --directory
+          artifacts/release-packages --package @peekling/adapter-codex-pet
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - run:
+          node scripts/release-archives.mjs publish --directory
+          artifacts/release-packages --package @peekling/preflight
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - run:
+          node scripts/release-archives.mjs publish --directory
+          artifacts/release-packages --package @peekling/vite
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - run:
+          node scripts/release-archives.mjs publish --directory
+          artifacts/release-packages --package @peekling/cli
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

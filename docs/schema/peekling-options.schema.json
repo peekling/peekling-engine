@@ -1,0 +1,1352 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://peekling.com/schema/options-v0.1.json",
+  "title": "Peekling v0.1 serializable browser options",
+  "description": "Authoritative shape and lexical schema for the JSON-safe portion of Peekling.hatch options. Shared semantic validation completes URL admission. Trusted host mount functions are registered separately through JavaScript properties.",
+  "type": "object",
+  "additionalProperties": false,
+  "anyOf": [
+    { "required": ["character"] },
+    { "required": ["pack"] },
+    { "required": ["packUrl"] }
+  ],
+  "properties": {
+    "format": {
+      "const": 1,
+      "default": 1,
+      "description": "Serializable options contract version. Persisted configurations should include this field. Omission means version 1 for direct JavaScript calls."
+    },
+    "character": {
+      "$ref": "#/$defs/name",
+      "description": "Explicit registered character selection. At least one of character, pack, or packUrl is required."
+    },
+    "pack": {
+      "description": "Inline validated data-only native or normalized character pack.",
+      "oneOf": [
+        {
+          "$ref": "#/$defs/nativeManifest"
+        },
+        {
+          "$ref": "#/$defs/normalizedPack"
+        }
+      ]
+    },
+    "packUrl": {
+      "$ref": "#/$defs/httpPath",
+      "description": "Immutable relative path or absolute HTTPS manifest URL."
+    },
+    "atlasUrl": {
+      "$ref": "#/$defs/httpPath",
+      "description": "Byte-identical atlas mirror. Density is required when the Pack declares variants."
+    },
+    "styles": {
+      "$ref": "#/$defs/runtimeStyles",
+      "description": "External runtime stylesheet loaded into Peekling Shadow DOM roots."
+    },
+    "density": {
+      "$ref": "#/$defs/density",
+      "description": "Exact atlas density override."
+    },
+    "maxDensity": {
+      "$ref": "#/$defs/density",
+      "description": "Highest atlas density the runtime may load.",
+      "default": 4
+    },
+    "scale": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 4,
+      "description": "Logical sprite render scale. When omitted, the validated pack default applies."
+    },
+    "position": {
+      "$ref": "#/$defs/initialPosition",
+      "description": "Initial character center in the viewport.",
+      "default": "bottom-right"
+    },
+    "name": {
+      "description": "Hidden by default. True uses the validated manifest display name. A string is a host override for the generic bottom surface.",
+      "default": false,
+      "oneOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "$ref": "#/$defs/plainText80"
+        }
+      ]
+    },
+    "plan": {
+      "$ref": "#/$defs/plan",
+      "description": "Host-owned declarative behavior and content selection plan."
+    },
+    "content": {
+      "$ref": "#/$defs/contentRegistry",
+      "description": "Host-owned registry of generic anchored surfaces selected by contentId.",
+      "default": {}
+    },
+    "theme": {
+      "$ref": "#/$defs/theme",
+      "description": "Bounded default-surface theme tokens. Host-mounted content owns its child styling."
+    },
+    "accessibility": {
+      "$ref": "#/$defs/accessibility",
+      "description": "Opt-in announcement and accessible labeling settings."
+    },
+    "diagnostics": {
+      "$ref": "#/$defs/diagnostics",
+      "description": "Serializable diagnostic output policy."
+    }
+  },
+  "$defs": {
+    "runtimeStyles": {
+      "description": "External stylesheet asset loaded into each Peekling Shadow DOM root.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["url"],
+      "properties": {
+        "url": {
+          "$ref": "#/$defs/httpPath",
+          "description": "Same-origin or CORS-enabled external Peekling stylesheet."
+        },
+        "integrity": {
+          "type": "string",
+          "maxLength": 256,
+          "pattern": "^sha(?:256|384|512)-[A-Za-z0-9+/]+={0,2}$",
+          "description": "One release-provided Subresource Integrity hash."
+        }
+      }
+    },
+    "nativeManifest": {
+      "description": "Data-only native Pack manifest for format 1.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "format",
+        "name",
+        "version",
+        "license",
+        "metadata",
+        "assets",
+        "states"
+      ],
+      "properties": {
+        "format": {
+          "const": 1
+        },
+        "name": {
+          "$ref": "#/$defs/name"
+        },
+        "version": { "$ref": "#/$defs/semver" },
+        "license": { "$ref": "#/$defs/spdxLicense" },
+        "metadata": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["description"],
+          "properties": {
+            "title": {
+              "$ref": "#/$defs/plainText120"
+            },
+            "author": {
+              "$ref": "#/$defs/plainText120"
+            },
+            "description": {
+              "$ref": "#/$defs/plainText500"
+            },
+            "tags": {
+              "type": "array",
+              "maxItems": 16,
+              "uniqueItems": true,
+              "items": {
+                "$ref": "#/$defs/name"
+              }
+            }
+          }
+        },
+        "assets": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["atlas"],
+              "properties": {
+                "atlas": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["src", "sha256", "columns", "rows"],
+                  "properties": {
+                    "src": {
+                      "$ref": "#/$defs/assetPath"
+                    },
+                    "sha256": {
+                      "$ref": "#/$defs/sha256"
+                    },
+                    "columns": {
+                      "const": 16
+                    },
+                    "rows": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 4096
+                    },
+                    "density": {
+                      "$ref": "#/$defs/density",
+                      "default": 1
+                    },
+                    "logicalCellSize": {
+                      "enum": [32, 64],
+                      "default": 32
+                    },
+                    "sourceCellSize": {
+                      "type": "integer",
+                      "minimum": 32,
+                      "maximum": 256
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["atlases"],
+              "properties": {
+                "atlases": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "columns",
+                    "rows",
+                    "logicalCellSize",
+                    "lineage",
+                    "variants"
+                  ],
+                  "properties": {
+                    "columns": {
+                      "const": 16
+                    },
+                    "rows": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 4096
+                    },
+                    "logicalCellSize": {
+                      "enum": [32, 64]
+                    },
+                    "lineage": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 128
+                    },
+                    "variants": {
+                      "type": "array",
+                      "minItems": 1,
+                      "maxItems": 3,
+                      "items": {
+                        "$ref": "#/$defs/atlasVariant"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        },
+        "states": {
+          "$ref": "#/$defs/stateRegistry"
+        },
+        "capabilities": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "locomotion": {
+              "$ref": "#/$defs/locomotionCapability"
+            }
+          }
+        },
+        "defaults": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "scale": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 4,
+              "default": 2
+            }
+          }
+        }
+      }
+    },
+    "normalizedPack": {
+      "description": "Stable normalized adapter data accepted by the runtime. This is not a native authoring format.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "displayName",
+        "version",
+        "license",
+        "atlas",
+        "states",
+        "defaultScale"
+      ],
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/name"
+        },
+        "displayName": {
+          "$ref": "#/$defs/plainText120"
+        },
+        "version": { "$ref": "#/$defs/semver" },
+        "license": { "$ref": "#/$defs/spdxLicense" },
+        "atlas": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["src", "columns", "rows", "cellWidth", "cellHeight"],
+          "anyOf": [{ "required": ["sha256"] }, { "required": ["variants"] }],
+          "properties": {
+            "src": {
+              "$ref": "#/$defs/assetPath"
+            },
+            "sha256": {
+              "$ref": "#/$defs/sha256"
+            },
+            "columns": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 256
+            },
+            "rows": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 4096
+            },
+            "cellWidth": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1024
+            },
+            "cellHeight": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1024
+            },
+            "logicalWidth": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 256
+            },
+            "logicalHeight": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 256
+            },
+            "density": {
+              "$ref": "#/$defs/density"
+            },
+            "lineage": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "variants": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 3,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "src",
+                  "density",
+                  "cellWidth",
+                  "cellHeight",
+                  "sha256"
+                ],
+                "properties": {
+                  "src": {
+                    "$ref": "#/$defs/assetPath"
+                  },
+                  "density": {
+                    "$ref": "#/$defs/density"
+                  },
+                  "cellWidth": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 1024
+                  },
+                  "cellHeight": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 1024
+                  },
+                  "sha256": {
+                    "$ref": "#/$defs/sha256"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "states": {
+          "$ref": "#/$defs/stateRegistry"
+        },
+        "defaultScale": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4
+        },
+        "directionalStates": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "N": {
+              "$ref": "#/$defs/stateName"
+            },
+            "NE": {
+              "$ref": "#/$defs/stateName"
+            },
+            "E": {
+              "$ref": "#/$defs/stateName"
+            },
+            "SE": {
+              "$ref": "#/$defs/stateName"
+            },
+            "S": {
+              "$ref": "#/$defs/stateName"
+            },
+            "SW": {
+              "$ref": "#/$defs/stateName"
+            },
+            "W": {
+              "$ref": "#/$defs/stateName"
+            },
+            "NW": {
+              "$ref": "#/$defs/stateName"
+            }
+          }
+        },
+        "locomotionMotion": {
+          "$ref": "#/$defs/locomotionKeyframes"
+        },
+        "reactionStates": {
+          "type": "object",
+          "additionalProperties": false,
+          "maxProperties": 32,
+          "patternProperties": {
+            "^[a-z][a-z0-9:-]{0,63}$": {
+              "$ref": "#/$defs/stateName"
+            }
+          }
+        },
+        "source": {
+          "$ref": "#/$defs/jsonValue"
+        }
+      }
+    },
+    "assetPath": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256,
+      "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.?(?:/|$))(?!.*//)[A-Za-z0-9._/-]{1,256}$"
+    },
+    "semver": {
+      "description": "Semantic Versioning 2.0 value without a v prefix.",
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?(?:\\+[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?$"
+    },
+    "spdxLicense": {
+      "description": "Single SPDX identifier or supported LicenseRef form. Compound expressions are excluded in v0.1.",
+      "type": "string",
+      "pattern": "^(?:[A-Za-z0-9][A-Za-z0-9.-]{0,63}|DocumentRef-[A-Za-z0-9][A-Za-z0-9.-]{0,31}:LicenseRef-[A-Za-z0-9][A-Za-z0-9.-]{0,31})$"
+    },
+    "sha256": {
+      "description": "Lowercase SHA-256 digest for immutable manifest or atlas bytes.",
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "atlasVariant": {
+      "description": "One source-density atlas candidate from a shared adaptive atlas lineage.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["src", "density", "sourceCellSize", "sha256"],
+      "properties": {
+        "src": {
+          "$ref": "#/$defs/assetPath"
+        },
+        "density": {
+          "$ref": "#/$defs/density"
+        },
+        "sourceCellSize": {
+          "type": "integer",
+          "minimum": 32,
+          "maximum": 256
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "stateRegistry": {
+      "description": "Named Pack States mapped to bounded frame timing definitions.",
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "maxProperties": 256,
+      "patternProperties": {
+        "^[a-z][a-z0-9-]*(?::[A-Za-z0-9.-]+)?$": {
+          "$ref": "#/$defs/stateDefinition"
+        }
+      }
+    },
+    "stateDefinition": {
+      "description": "Frame sequence with exactly one timing mode, fixed FPS or per-frame durations.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["frames", "loop"],
+      "properties": {
+        "frames": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 128,
+          "items": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 65535
+          }
+        },
+        "fps": {
+          "type": "number",
+          "minimum": 0.1,
+          "maximum": 60
+        },
+        "loop": {
+          "type": "boolean"
+        },
+        "durations": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 128,
+          "items": {
+            "type": "number",
+            "minimum": 16,
+            "maximum": 10000
+          }
+        }
+      },
+      "oneOf": [
+        {
+          "required": ["fps"],
+          "not": {
+            "required": ["durations"]
+          }
+        },
+        {
+          "required": ["durations"],
+          "not": {
+            "required": ["fps"]
+          }
+        }
+      ]
+    },
+    "locomotionCapability": {
+      "description": "Explicit eight-direction State mapping with optional bounded motion keyframes.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["directions"],
+      "properties": {
+        "directions": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["N", "NE", "E", "SE", "S", "SW", "W", "NW"],
+          "properties": {
+            "N": {
+              "$ref": "#/$defs/stateName"
+            },
+            "NE": {
+              "$ref": "#/$defs/stateName"
+            },
+            "E": {
+              "$ref": "#/$defs/stateName"
+            },
+            "SE": {
+              "$ref": "#/$defs/stateName"
+            },
+            "S": {
+              "$ref": "#/$defs/stateName"
+            },
+            "SW": {
+              "$ref": "#/$defs/stateName"
+            },
+            "W": {
+              "$ref": "#/$defs/stateName"
+            },
+            "NW": {
+              "$ref": "#/$defs/stateName"
+            }
+          }
+        },
+        "motion": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["keyframes"],
+          "properties": {
+            "keyframes": {
+              "$ref": "#/$defs/locomotionKeyframes"
+            }
+          }
+        }
+      }
+    },
+    "locomotionKeyframes": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 8,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["at", "advance", "lift"],
+        "properties": {
+          "at": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "advance": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 4
+          },
+          "lift": {
+            "type": "number",
+            "minimum": -2,
+            "maximum": 2
+          }
+        }
+      }
+    },
+    "name": {
+      "description": "Lowercase bounded identifier. The peekling: prefix is reserved.",
+      "type": "string",
+      "pattern": "^(?!peekling:)[a-z][a-z0-9:-]{0,63}$",
+      "minLength": 1,
+      "maxLength": 64
+    },
+    "stateName": {
+      "description": "Case-sensitive State name with an optional variant after one colon.",
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*(?::[A-Za-z0-9.-]+)?$",
+      "minLength": 1,
+      "maxLength": 64
+    },
+    "plainText80": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 80,
+      "pattern": "^[^\\u0000-\\u001F\\u007F]+$"
+    },
+    "plainText120": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 120,
+      "pattern": "^[^\\u0000-\\u001F\\u007F]+$"
+    },
+    "plainText500": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 500,
+      "pattern": "^[^\\u0000-\\u001F\\u007F]+$"
+    },
+    "httpPath": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 2048,
+      "pattern": "^(?![Hh][Tt][Tt][Pp][Ss]://[^/?#]*@)(?!//)(?!.*%(?![0-9A-Fa-f]{2}))(?:[Hh][Tt][Tt][Pp][Ss]://[^\\s\\u0000-\\u001F\\u007F-\\u009F\\\\]+|(?![A-Za-z][A-Za-z0-9+.-]*:)[^\\s\\u0000-\\u001F\\u007F-\\u009F\\\\]+)$",
+      "description": "A lexically safe relative path or absolute HTTPS URL candidate. Final admission also requires Peekling's shared semantic URL validator.",
+      "$comment": "JSON Schema checks the serializable lexical boundary. Preflight, Doctor, hatch, and the Web Component apply the required URL parser checks for host, port, credentials, and same-origin relative resolution."
+    },
+    "density": {
+      "description": "Supported source-density multiplier.",
+      "type": "integer",
+      "enum": [1, 2, 4]
+    },
+    "point": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["x", "y"],
+      "properties": {
+        "x": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "y": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    },
+    "pixelPoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["x", "y"],
+      "properties": {
+        "x": {
+          "type": "number",
+          "minimum": -100000,
+          "maximum": 100000
+        },
+        "y": {
+          "type": "number",
+          "minimum": -100000,
+          "maximum": 100000
+        }
+      }
+    },
+    "initialPosition": {
+      "description": "Viewport position preset or bounded CSS-pixel center.",
+      "oneOf": [
+        {
+          "enum": ["bottom-left", "bottom-right", "center"]
+        },
+        {
+          "$ref": "#/$defs/pixelPoint"
+        }
+      ]
+    },
+    "selector": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256,
+      "pattern": "^[^\\u0000\\r\\n]+$"
+    },
+    "planChannel": {
+      "description": "Presentation channel owned by an Effect.",
+      "type": "string",
+      "pattern": "^(?:motion|state|surface:[a-z][a-z0-9:-]{0,63})$"
+    },
+    "applicationCondition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source", "event"],
+      "properties": {
+        "source": { "const": "application" },
+        "event": {
+          "type": "string",
+          "pattern": "^(?=.{1,64}$)[a-z][a-z0-9]*(?:[.:-][a-z][a-z0-9-]*)*$"
+        },
+        "coalesce": { "const": "latest" }
+      }
+    },
+    "browserCondition": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["source", "event"],
+          "properties": {
+            "source": { "const": "browser" },
+            "event": {
+              "enum": [
+                "pointer.click",
+                "pointer.move",
+                "document.visibility",
+                "window.focus",
+                "page.lifecycle"
+              ]
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["source", "event"],
+          "properties": {
+            "source": { "const": "browser" },
+            "event": { "const": "window.scroll" },
+            "coalesce": { "const": "latest" }
+          }
+        }
+      ]
+    },
+    "sectionCondition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source", "event", "selector", "phase"],
+      "properties": {
+        "source": { "const": "browser" },
+        "event": { "const": "section.visibility" },
+        "selector": { "$ref": "#/$defs/selector" },
+        "phase": { "enum": ["enter", "while-visible", "leave"] },
+        "threshold": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1,
+          "default": 0.25
+        }
+      }
+    },
+    "planDiscreteBrowserCondition": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["source", "event"],
+          "properties": {
+            "source": { "const": "browser" },
+            "event": {
+              "enum": [
+                "pointer.click",
+                "document.visibility",
+                "window.focus",
+                "page.lifecycle"
+              ]
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["source", "event"],
+          "properties": {
+            "source": { "const": "browser" },
+            "event": { "const": "window.scroll" },
+            "coalesce": { "const": "latest" }
+          }
+        }
+      ]
+    },
+    "planDiscreteSectionCondition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source", "event", "selector", "phase"],
+      "properties": {
+        "source": { "const": "browser" },
+        "event": { "const": "section.visibility" },
+        "selector": { "$ref": "#/$defs/selector" },
+        "phase": { "enum": ["enter", "leave"] },
+        "threshold": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1,
+          "default": 0.25
+        }
+      }
+    },
+    "planContinuousPointerCondition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source", "event"],
+      "properties": {
+        "source": { "const": "browser" },
+        "event": { "const": "pointer.move" }
+      }
+    },
+    "planContinuousSectionCondition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source", "event", "selector", "phase"],
+      "properties": {
+        "source": { "const": "browser" },
+        "event": { "const": "section.visibility" },
+        "selector": { "$ref": "#/$defs/selector" },
+        "phase": { "const": "while-visible" },
+        "threshold": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1,
+          "default": 0.25
+        }
+      }
+    },
+    "planDiscreteCondition": {
+      "oneOf": [
+        { "$ref": "#/$defs/applicationCondition" },
+        { "$ref": "#/$defs/planDiscreteBrowserCondition" },
+        { "$ref": "#/$defs/planDiscreteSectionCondition" }
+      ]
+    },
+    "planContinuousCondition": {
+      "oneOf": [
+        { "$ref": "#/$defs/planContinuousPointerCondition" },
+        { "$ref": "#/$defs/planContinuousSectionCondition" }
+      ]
+    },
+    "planCondition": {
+      "description": "Typed application or browser condition that can activate a Rule.",
+      "oneOf": [
+        { "$ref": "#/$defs/applicationCondition" },
+        { "$ref": "#/$defs/browserCondition" },
+        { "$ref": "#/$defs/sectionCondition" }
+      ]
+    },
+    "planStateSelection": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["state"],
+          "properties": {
+            "state": { "$ref": "#/$defs/stateName" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["capability"],
+          "properties": {
+            "capability": { "const": "locomotion" }
+          }
+        }
+      ]
+    },
+    "planMotionEffect": {
+      "description": "Bounded follow-pointer motion selection.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type"],
+      "properties": {
+        "type": { "const": "follow-pointer" },
+        "speed": { "$ref": "#/$defs/speed" },
+        "arrivalRadius": { "$ref": "#/$defs/arrivalRadius" }
+      }
+    },
+    "planSurfaceOrdering": {
+      "description": "Session and revision fields used to reject stale surface data.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sessionField"],
+      "properties": {
+        "sessionField": {
+          "type": "string",
+          "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,63}$"
+        },
+        "revisionField": {
+          "type": "string",
+          "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,63}$"
+        },
+        "terminal": { "type": "boolean" }
+      },
+      "anyOf": [
+        { "required": ["revisionField"] },
+        {
+          "required": ["terminal"],
+          "properties": { "terminal": { "const": true } }
+        }
+      ]
+    },
+    "planSurfaceEffect": {
+      "description": "Named content-surface selection and its optional Event data policy.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "contentId"],
+      "properties": {
+        "id": { "$ref": "#/$defs/name" },
+        "contentId": { "$ref": "#/$defs/name" },
+        "data": {
+          "anyOf": [
+            { "const": "event-payload" },
+            { "$ref": "#/$defs/jsonValue" }
+          ]
+        },
+        "disposition": {
+          "enum": ["update", "replace", "ignore", "interrupt"]
+        },
+        "ordering": { "$ref": "#/$defs/planSurfaceOrdering" }
+      }
+    },
+    "planEffect": {
+      "description": "Channel-scoped state, motion, surface, and optional bounded lifetime selection.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["channels"],
+      "properties": {
+        "channels": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 16,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/planChannel" }
+        },
+        "state": { "$ref": "#/$defs/planStateSelection" },
+        "motion": { "$ref": "#/$defs/planMotionEffect" },
+        "surfaces": {
+          "type": "array",
+          "maxItems": 8,
+          "items": { "$ref": "#/$defs/planSurfaceEffect" }
+        },
+        "until": { "$ref": "#/$defs/planInterruptLifetime" }
+      }
+    },
+    "planContinuousEffect": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["channels"],
+      "properties": {
+        "channels": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 16,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/planChannel" }
+        },
+        "state": { "$ref": "#/$defs/planStateSelection" },
+        "motion": { "$ref": "#/$defs/planMotionEffect" },
+        "surfaces": false,
+        "until": false
+      }
+    },
+    "planBaselineSurfaceEffect": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "contentId"],
+      "properties": {
+        "id": { "$ref": "#/$defs/name" },
+        "contentId": { "$ref": "#/$defs/name" },
+        "data": {
+          "allOf": [
+            { "$ref": "#/$defs/jsonValue" },
+            { "not": { "const": "event-payload" } }
+          ]
+        },
+        "disposition": {
+          "enum": ["update", "replace", "ignore"]
+        }
+      }
+    },
+    "planBaselineEffect": {
+      "description": "Required persistent Plan selection used when no higher Rule or Override owns a channel.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["channels", "state"],
+      "properties": {
+        "channels": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 16,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/planChannel" },
+          "contains": { "const": "state" }
+        },
+        "state": { "$ref": "#/$defs/planStateSelection" },
+        "motion": { "$ref": "#/$defs/planMotionEffect" },
+        "surfaces": {
+          "type": "array",
+          "maxItems": 8,
+          "items": { "$ref": "#/$defs/planBaselineSurfaceEffect" }
+        }
+      }
+    },
+    "planInterruptLifetime": {
+      "description": "Bounded duration or Event completion condition for a temporary Rule Effect.",
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "ms"],
+          "properties": {
+            "type": { "const": "duration" },
+            "ms": { "type": "number", "minimum": 1, "maximum": 3600000 }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "name"],
+          "properties": {
+            "type": { "const": "event" },
+            "name": {
+              "type": "string",
+              "pattern": "^(?=.{1,64}$)[a-z][a-z0-9]*(?:[.:-][a-z][a-z0-9-]*)*$",
+              "not": { "enum": ["pointer.move", "section.visibility"] },
+              "description": "Application Event name or discrete browser Event name. pointer.move and the unqualified section.visibility name cannot complete an interrupt."
+            },
+            "timeout": {
+              "type": "number",
+              "minimum": 1,
+              "maximum": 3600000
+            }
+          }
+        }
+      ]
+    },
+    "planRule": {
+      "description": "Declaration-ordered condition and Effect pair.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "when", "effect"],
+      "properties": {
+        "id": { "$ref": "#/$defs/name" },
+        "when": { "$ref": "#/$defs/planCondition" },
+        "effect": { "$ref": "#/$defs/planEffect" }
+      },
+      "oneOf": [
+        {
+          "properties": {
+            "when": { "$ref": "#/$defs/planDiscreteCondition" },
+            "effect": { "$ref": "#/$defs/planEffect" }
+          }
+        },
+        {
+          "properties": {
+            "when": { "$ref": "#/$defs/planContinuousCondition" },
+            "effect": { "$ref": "#/$defs/planContinuousEffect" }
+          }
+        }
+      ]
+    },
+    "plan": {
+      "description": "Immutable baseline and optional declaration-ordered Rules.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["baseline"],
+      "properties": {
+        "baseline": { "$ref": "#/$defs/planBaselineEffect" },
+        "rules": {
+          "type": "array",
+          "maxItems": 64,
+          "items": { "$ref": "#/$defs/planRule" }
+        }
+      }
+    },
+    "speed": {
+      "type": "number",
+      "minimum": 1,
+      "maximum": 1000
+    },
+    "arrivalRadius": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1000,
+      "description": "Center-to-target distance in CSS pixels at which movement is complete."
+    },
+    "padding": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1000
+    },
+    "contentRegistry": {
+      "description": "Host-owned safe content entries selected by contentId.",
+      "type": "object",
+      "additionalProperties": false,
+      "maxProperties": 32,
+      "patternProperties": {
+        "^[a-z][a-z0-9:-]{0,63}$": {
+          "$ref": "#/$defs/contentItem"
+        }
+      }
+    },
+    "contentItem": {
+      "description": "One content entry anchored to at least one supported region.",
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "properties": {
+        "top-left": {
+          "$ref": "#/$defs/contentPrimitive"
+        },
+        "top-center": {
+          "$ref": "#/$defs/contentPrimitive"
+        },
+        "top-right": {
+          "$ref": "#/$defs/contentPrimitive"
+        },
+        "bottom": {
+          "$ref": "#/$defs/contentPrimitive"
+        }
+      }
+    },
+    "contentPrimitive": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/plainText500"
+        },
+        {
+          "$ref": "#/$defs/contentSurface"
+        }
+      ]
+    },
+    "contentSurface": {
+      "description": "Safe engine-owned text, link, or host mount reference.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "title": {
+          "$ref": "#/$defs/plainText120"
+        },
+        "text": {
+          "$ref": "#/$defs/plainText500"
+        },
+        "link": {
+          "$ref": "#/$defs/link"
+        },
+        "mountId": {
+          "$ref": "#/$defs/name"
+        },
+        "announce": {
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "anyOf": [
+        {
+          "required": ["title"]
+        },
+        {
+          "required": ["text"]
+        },
+        {
+          "required": ["link"]
+        },
+        {
+          "required": ["mountId"]
+        }
+      ]
+    },
+    "link": {
+      "description": "Plain label and semantically validated relative or HTTPS destination.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["label", "href"],
+      "properties": {
+        "label": {
+          "$ref": "#/$defs/plainText120"
+        },
+        "href": {
+          "$ref": "#/$defs/httpPath"
+        }
+      }
+    },
+    "theme": {
+      "description": "Bounded visual tokens for engine-owned content surfaces.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "background": {
+          "$ref": "#/$defs/colorToken"
+        },
+        "color": {
+          "$ref": "#/$defs/colorToken"
+        },
+        "linkColor": {
+          "$ref": "#/$defs/colorToken"
+        },
+        "borderColor": {
+          "$ref": "#/$defs/colorToken"
+        },
+        "radius": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 64,
+          "default": 14
+        },
+        "width": {
+          "type": "number",
+          "minimum": 120,
+          "maximum": 640,
+          "default": 320
+        },
+        "padding": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 48,
+          "default": 12
+        }
+      }
+    },
+    "colorToken": {
+      "description": "Transparent or a 3, 4, 6, or 8 digit hexadecimal color.",
+      "type": "string",
+      "pattern": "^(?:transparent|#(?:[0-9A-Fa-f]{3,4}|[0-9A-Fa-f]{6}|[0-9A-Fa-f]{8}))(?![\\s\\S])"
+    },
+    "accessibility": {
+      "description": "Opt-in content announcement and accessible group labeling.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "announceContent": {
+          "type": "boolean",
+          "default": false
+        },
+        "contentLabel": {
+          "$ref": "#/$defs/plainText120",
+          "default": "Peekling content"
+        }
+      }
+    },
+    "diagnostics": {
+      "description": "Serializable diagnostic output and bounded host context policy.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "console": {
+          "type": "boolean",
+          "description": "Console policy when no host sink exists. Omit for errors only, use true for all records, or false for none."
+        },
+        "debug": {
+          "type": "boolean",
+          "default": false,
+          "description": "Allows bounded error causes and stacks in host-delivered diagnostics. Keep false in production."
+        },
+        "context": {
+          "type": "object",
+          "additionalProperties": false,
+          "maxProperties": 16,
+          "patternProperties": {
+            "^[a-z][a-z0-9_.-]{0,31}$": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "maxLength": 64
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "boolean"
+                }
+              ]
+            }
+          },
+          "description": "Bounded host correlation or variant metadata. Peekling does not assign experiments or identities."
+        }
+      }
+    },
+    "jsonValue": {
+      "description": "JSON-like payload accepted by instance.emit, bounded further by runtime depth and byte limits.",
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "string",
+          "maxLength": 2048
+        },
+        {
+          "type": "array",
+          "maxItems": 64,
+          "items": {
+            "$ref": "#/$defs/jsonValue"
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "maxProperties": 64,
+          "patternProperties": {
+            "^[A-Za-z0-9_.:-]{1,64}$": {
+              "$ref": "#/$defs/jsonValue"
+            }
+          }
+        }
+      ]
+    }
+  }
+}

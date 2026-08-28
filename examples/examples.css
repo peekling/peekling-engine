@@ -1,0 +1,146 @@
+:root {
+  color: #262626;
+  background: #fafafa;
+  font-family: "Albert Sans", system-ui, sans-serif;
+  font-synthesis: none;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  min-height: 100vh;
+  margin: 0;
+  padding: clamp(24px, 6vw, 72px);
+}
+
+main {
+  width: min(720px, 100%);
+  margin: 0 auto;
+}
+
+h1 {
+  margin: 0 0 16px;
+  font-size: clamp(2.25rem, 8vw, 4.5rem);
+  line-height: 0.95;
+  letter-spacing: -0.055em;
+}
+
+p,
+li {
+  max-width: 64ch;
+  color: #434343;
+  font-size: 1rem;
+  line-height: 1.65;
+}
+
+.eyebrow,
+.status {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 4px 12px;
+  border: 1px solid #d9d9d9;
+  border-radius: 9999px;
+  background: #ffffff;
+  color: #262626;
+  font-size: 0.75rem;
+  font-weight: 750;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+button,
+a {
+  min-height: 44px;
+}
+
+button {
+  padding: 10px 18px;
+  border: 1px solid #262626;
+  border-radius: 9999px;
+  background: #262626;
+  color: #ffffff;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+button.secondary {
+  border-color: #d9d9d9;
+  background: #ffffff;
+  color: #262626;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+button:focus-visible,
+a:focus-visible {
+  outline: 2px solid #262626;
+  outline-offset: 3px;
+  box-shadow: 0 0 0 6px rgb(99 254 19 / 35%);
+}
+
+.trace {
+  margin-top: 32px;
+  padding: 20px;
+  border: 1px solid #d9d9d9;
+  background: #ffffff;
+}
+
+.trace output {
+  display: block;
+  margin-top: 8px;
+  font-family: ui-monospace, monospace;
+}
+
+nav {
+  margin-top: 40px;
+}
+
+nav a {
+  display: inline-flex;
+  align-items: center;
+  color: #262626;
+  text-underline-offset: 5px;
+}
+
+.example-list {
+  display: grid;
+  gap: 12px;
+  padding: 0;
+  list-style: none;
+}
+
+.example-list li {
+  display: grid;
+  gap: 4px;
+  padding: 20px;
+  border: 1px solid #d9d9d9;
+  background: #ffffff;
+}
+
+.example-list a {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  color: #262626;
+  font-weight: 750;
+  text-underline-offset: 5px;
+}
+
+.example-list span {
+  color: #595959;
+  line-height: 1.5;
+}

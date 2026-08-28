@@ -1,0 +1,67 @@
+name: Peekling v0.1 gates
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v6.2.0
+        with:
+          node-version: 22.14.0
+          package-manager-cache: false
+      - run: npm install --global npm@11.16.0
+      - run: npm ci --ignore-scripts
+      - run: npm run check:core
+      - run: npm run size:release
+
+  packages:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v6.2.0
+        with:
+          node-version: 22.14.0
+          package-manager-cache: false
+      - run: npm install --global npm@11.16.0
+      - run: npm ci --ignore-scripts
+      - run: npm run release:verify:packages
+
+  browsers:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v6.2.0
+        with:
+          node-version: 22.14.0
+          package-manager-cache: false
+      - run: npm install --global npm@11.16.0
+      - run: npm ci --ignore-scripts
+      - run:
+          npx --no-install playwright install --with-deps chromium firefox
+          webkit
+      - run: npm run test:browser
+      - run: npm run perf:browser -- --output artifacts/browser-performance.json
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: ${{ always() }}
+        with:
+          name: peekling-browser-performance-${{ github.sha }}
+          path: artifacts/browser-performance.json
+          if-no-files-found: warn
+          retention-days: 30

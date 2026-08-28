@@ -1,0 +1,45 @@
+html,
+body {
+  min-height: 200%;
+  margin: 0;
+}
+
+body {
+  overflow: hidden;
+  contain: paint;
+  transform: translateZ(0);
+}
+
+* {
+  box-sizing: content-box;
+}
+
+[data-peekling-host],
+[data-peekling-content],
+[data-peekling-controls] {
+  all: unset !important;
+  position: static !important;
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  overflow: visible !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: auto !important;
+  transform: translate(10000px, 10000px) !important;
+  animation: hostile-jitter 1ms infinite !important;
+  z-index: -1 !important;
+}
+
+#host-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483647;
+  pointer-events: none;
+}
+
+@keyframes hostile-jitter {
+  to {
+    transform: translate(-10000px, -10000px);
+  }
+}

@@ -1,0 +1,3 @@
+export const BROWSER_GZIP_LIMIT = 32 * 1024;
+export const BROWSER_BROTLI_LIMIT = 32 * 1024;
+export const BROWSER_RELEASE_HEADROOM = 256;

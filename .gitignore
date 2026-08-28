@@ -1,0 +1,11 @@
+.DS_Store
+private/
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+demo/dist/
+packages/*/dist/
+artifacts/
+playwright-report/
+test-results/

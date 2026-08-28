@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Web Component | Peekling examples</title>
+    <link rel="stylesheet" href="../examples.css" />
+    <script defer src="/runtime/peekling.js"></script>
+    <script defer src="./app.js"></script>
+  </head>
+  <body>
+    <main>
+      <span class="eyebrow">Example 4</span>
+      <h1>Declarative page lifecycle</h1>
+      <p>
+        The browser bundle registers the Web Component. Connecting the element
+        owns one hatch instance. Disconnecting destroys it, and reconnecting
+        creates a fresh page-lifetime instance.
+      </p>
+      <p class="status" data-example-status>Starting</p>
+      <div class="controls">
+        <button type="button" data-disconnect>Disconnect</button>
+        <button type="button" class="secondary" data-reconnect>
+          Reconnect
+        </button>
+      </div>
+      <div data-component-mount>
+        <peekling-character
+          id="example-character"
+          pack-url="/fixture/character.json"
+        ></peekling-character>
+      </div>
+      <nav><a href="/">Back to all examples</a></nav>
+    </main>
+  </body>
+</html>

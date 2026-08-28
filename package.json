@@ -1,0 +1,63 @@
+{
+  "name": "@peekling/engine-workspace",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Public monorepo for the Peekling browser runtime and tightly coupled tools",
+  "license": "Apache-2.0",
+  "author": {
+    "name": "Prajwal S. Venkateshmurthy",
+    "url": "https://prajwal.me"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/peekling/peekling-engine.git"
+  },
+  "homepage": "https://github.com/peekling/peekling-engine#readme",
+  "bugs": {
+    "url": "https://github.com/peekling/peekling-engine/issues"
+  },
+  "type": "module",
+  "packageManager": "npm@11.16.0",
+  "engines": {
+    "node": ">=22.14.0"
+  },
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "boundaries": "node scripts/check-boundaries.mjs",
+    "audit:distribution": "node scripts/audit-distribution.mjs",
+    "examples": "npm run build && node examples/server.mjs",
+    "test:examples": "npm run build && node --test test/examples.test.mjs && playwright test test/browser/examples.spec.mjs --project=chromium",
+    "test:browser": "npm run build && playwright test",
+    "test:peek:local": "npm run build && node scripts/check-default-character.mjs --local \"$PEEKLING_PEEK_ROOT\" && playwright test -g \"explicit Peek selection\"",
+    "test:peek:published": "npm run build && node scripts/check-default-character.mjs --published",
+    "check": "npm run check:core",
+    "check:core": "npm run format:check && npm run build && npm run lint && npm run boundaries && npm run release:workflows && node scripts/release-verify.mjs --metadata-only && npm run audit:distribution && npm run typecheck && npm test && npm run size && npm run perf",
+    "format": "prettier --write package.json tsconfig.base.json .prettierrc.json '.github/workflows/*.yml' playwright.config.mjs README.md CHANGELOG.md CONTRIBUTING.md SECURITY.md SUPPORT.md 'docs/**/*.md' 'docs/schema/*.{json,d.ts}' 'examples/**/*.{html,css,js,mjs,md}' 'packages/**/*.{ts,mjs,json}' 'scripts/*.mjs' 'test/**/*.{html,css,js,mjs,ts}'",
+    "format:check": "prettier --check package.json tsconfig.base.json .prettierrc.json '.github/workflows/*.yml' playwright.config.mjs README.md CHANGELOG.md CONTRIBUTING.md SECURITY.md SUPPORT.md 'docs/**/*.md' 'docs/schema/*.{json,d.ts}' 'examples/**/*.{html,css,js,mjs,md}' 'packages/**/*.{ts,mjs,json}' 'scripts/*.mjs' 'test/**/*.{html,css,js,mjs,ts}'",
+    "lint": "node scripts/lint.mjs",
+    "perf": "npm run build && node scripts/perf-smoke.mjs",
+    "perf:browser": "npm run build && node scripts/browser-performance.mjs",
+    "perf:browser:quick": "npm run build && node scripts/browser-performance.mjs --quick",
+    "prepublishOnly": "node scripts/refuse-root-publish.mjs",
+    "release:verify": "node scripts/release-verify.mjs",
+    "release:verify:local": "node scripts/release-verify.mjs --local",
+    "release:verify:packages": "node scripts/release-verify.mjs --packages-only",
+    "release:workflows": "node scripts/check-release-workflows.mjs",
+    "size": "node scripts/check-size.mjs && node scripts/measure-esm.mjs",
+    "size:release": "npm run build && node scripts/check-size.mjs --canonical && node scripts/measure-esm.mjs && node --test test/release/*.test.mjs",
+    "test": "npm run build && node --test --experimental-strip-types packages/*/test/*.test.ts packages/*/test/*.test.mjs test/*.test.mjs",
+    "typecheck": "tsc -b packages/runtime && tsc -b packages/preflight && tsc -b packages/vite && tsc -b packages/adapter-codex-pet && tsc -b packages/cli"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.61.1",
+    "@types/node": "^24.3.0",
+    "ajv": "^8.18.0",
+    "esbuild": "^0.28.2",
+    "prettier": "^3.6.2",
+    "terser": "5.50.0",
+    "typescript": "^7.0.2"
+  }
+}

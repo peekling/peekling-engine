@@ -1,0 +1,61 @@
+{
+  "name": "@peekling/preflight",
+  "version": "0.1.0",
+  "description": "Pure development-time validation for Peekling configuration and Packs",
+  "license": "Apache-2.0",
+  "author": {
+    "name": "Prajwal S. Venkateshmurthy",
+    "url": "https://prajwal.me"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/peekling/peekling-engine.git"
+  },
+  "homepage": "https://github.com/peekling/peekling-engine#readme",
+  "bugs": {
+    "url": "https://github.com/peekling/peekling-engine/issues"
+  },
+  "type": "module",
+  "engines": {
+    "node": ">=22.14.0"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "files": [
+    "dist/**/*.js",
+    "dist/**/*.d.ts",
+    "README.md",
+    "LICENSE",
+    "NOTICE",
+    "AUTHORS",
+    "LICENSING.md"
+  ],
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./json": {
+      "types": "./dist/json.d.ts",
+      "import": "./dist/json.js"
+    }
+  },
+  "dependencies": {},
+  "peerDependencies": {
+    "@peekling/runtime": "0.1.0"
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "prepack": "npm --prefix ../.. run build",
+    "test": "npm run build && node --test --experimental-strip-types test/*.test.ts",
+    "typecheck": "tsc -b --pretty false"
+  },
+  "devDependencies": {
+    "@peekling/runtime": "0.1.0",
+    "typescript": "^7.0.2"
+  }
+}

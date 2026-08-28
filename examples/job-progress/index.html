@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Job progress | Peekling examples</title>
+    <link rel="stylesheet" href="../examples.css" />
+    <script defer src="/runtime/peekling.js"></script>
+    <script defer src="./app.js"></script>
+  </head>
+  <body>
+    <main>
+      <span class="eyebrow">Example 2</span>
+      <h1>Progress and motion compose</h1>
+      <p>
+        Application Events update one named progress surface. Pointer Events own
+        motion, so moving the character cannot reset the job data.
+      </p>
+      <p class="status" data-example-status>Starting</p>
+      <div class="controls">
+        <button type="button" data-start-job>Start job</button>
+        <button type="button" data-advance-job>Advance job</button>
+        <button type="button" class="secondary" data-stale-job>
+          Send stale update
+        </button>
+        <button type="button" class="secondary" data-finish-job>
+          Finish job
+        </button>
+      </div>
+      <section class="trace" aria-labelledby="progress-heading">
+        <h2 id="progress-heading">Latest mounted surface data</h2>
+        <output data-progress-value>Waiting for a job</output>
+      </section>
+      <nav><a href="/">Back to all examples</a></nav>
+    </main>
+  </body>
+</html>
