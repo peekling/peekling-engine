@@ -14,6 +14,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
 import test from "node:test";
+import { deflateSync } from "node:zlib";
 import {
   createPack,
   importCodexPet,
@@ -129,6 +130,29 @@ function undecodableIndexedPng(width: number, height: number): Buffer {
     pngChunk("IDAT", Buffer.from([0x78, 0x01, 0xff, 0xff])),
     pngChunk("IEND"),
   ]);
+}
+
+function onePixelRgbaPng(imageData: Buffer): Buffer {
+  const header = Buffer.alloc(13);
+  header.writeUInt32BE(1, 0);
+  header.writeUInt32BE(1, 4);
+  header.set([8, 6, 0, 0, 0], 8);
+  return Buffer.concat([
+    pngSignature,
+    pngChunk("IHDR", header),
+    pngChunk("IDAT", imageData),
+    pngChunk("IEND"),
+  ]);
+}
+
+function pngWithExtraDecodedBytes(): Buffer {
+  return onePixelRgbaPng(deflateSync(Buffer.alloc(6)));
+}
+
+function pngWithTrailingCompressedBytes(): Buffer {
+  return onePixelRgbaPng(
+    Buffer.concat([deflateSync(Buffer.alloc(5)), Buffer.from([1, 2, 3, 4])]),
+  );
 }
 
 function withoutPngChunk(buffer: Buffer, excluded: string): Buffer {
@@ -591,6 +615,14 @@ test("PNG inspection verifies CRC, complete chunks, and decodability", () => {
     () => inspectPng(valid.subarray(0, valid.length - 1)),
     /truncated|IEND|complete/i,
   );
+});
+
+test("PNG inspection rejects decompressed bytes beyond the image", () => {
+  assert.throws(() => inspectPng(pngWithExtraDecodedBytes()), /decod/i);
+});
+
+test("PNG inspection rejects bytes after the compressed stream", () => {
+  assert.throws(() => inspectPng(pngWithTrailingCompressedBytes()), /decod/i);
 });
 
 test("Pack validation never certifies an incomplete PNG atlas", async () => {

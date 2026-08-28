@@ -1,7 +1,24 @@
 import { inspectImageStructure } from "@peekling/runtime/pack";
+import { inflateSync } from "node:zlib";
 import { PNG } from "pngjs";
 
 const SIGNATURE = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
+const ADAM7_PASSES = [
+  [0, 0, 8, 8],
+  [4, 0, 8, 8],
+  [0, 4, 4, 8],
+  [2, 0, 4, 4],
+  [0, 2, 2, 4],
+  [1, 0, 2, 2],
+  [0, 1, 1, 2],
+] as const;
+const COLOR_CHANNELS: Readonly<Record<number, number>> = {
+  0: 1,
+  2: 3,
+  3: 1,
+  4: 2,
+  6: 4,
+};
 
 function crc32(buffer: Buffer): number {
   let crc = 0xffffffff;
@@ -77,6 +94,7 @@ export function inspectPng(buffer: Buffer): {
   hasAlpha: boolean;
 } {
   const structure = inspectImageStructure(buffer, "image/png");
+  const imageData: Buffer[] = [];
   let cursor = 8;
   while (cursor + 12 <= buffer.length) {
     const length = buffer.readUInt32BE(cursor);
@@ -86,9 +104,36 @@ export function inspectPng(buffer: Buffer): {
     const actualCrc = crc32(buffer.subarray(cursor + 4, end - 4));
     if (actualCrc !== expectedCrc)
       throw new Error(`PNG ${type} chunk CRC is invalid`);
+    if (type === "IDAT") imageData.push(buffer.subarray(cursor + 8, end - 4));
     cursor = end;
     if (type === "IEND") break;
   }
+  const expectedInflatedBytes = inflatedPngByteLength(
+    buffer,
+    structure.width,
+    structure.height,
+  );
+  const compressedBytes = Buffer.concat(imageData);
+  let inflatedBytes: Buffer;
+  let consumedBytes: number;
+  try {
+    const result = inflateSync(compressedBytes, {
+      info: true,
+      maxOutputLength: expectedInflatedBytes,
+    }) as unknown as {
+      readonly buffer: Buffer;
+      readonly engine: { readonly bytesWritten: number };
+    };
+    inflatedBytes = result.buffer;
+    consumedBytes = result.engine.bytesWritten;
+  } catch {
+    throw new Error("atlas is not a decodable PNG file");
+  }
+  if (
+    inflatedBytes.length !== expectedInflatedBytes ||
+    consumedBytes !== compressedBytes.length
+  )
+    throw new Error("atlas is not a decodable PNG file");
   let decoded: PNG;
   try {
     decoded = PNG.sync.read(buffer, { checkCRC: true });
@@ -106,6 +151,40 @@ export function inspectPng(buffer: Buffer): {
     height: structure.height,
     hasAlpha: structure.hasAlpha,
   };
+}
+
+function inflatedPngByteLength(
+  buffer: Buffer,
+  width: number,
+  height: number,
+): number {
+  const bitsPerPixel = COLOR_CHANNELS[buffer[25]!]! * buffer[24]!;
+  if (buffer[28] === 0)
+    return filteredPassByteLength(width, height, bitsPerPixel);
+  return ADAM7_PASSES.reduce(
+    (total, [startX, startY, stepX, stepY]) =>
+      total +
+      filteredPassByteLength(
+        passLength(width, startX, stepX),
+        passLength(height, startY, stepY),
+        bitsPerPixel,
+      ),
+    0,
+  );
+}
+
+function passLength(size: number, start: number, step: number): number {
+  return size <= start ? 0 : Math.ceil((size - start) / step);
+}
+
+function filteredPassByteLength(
+  width: number,
+  height: number,
+  bitsPerPixel: number,
+): number {
+  return width === 0 || height === 0
+    ? 0
+    : height * (Math.ceil((width * bitsPerPixel) / 8) + 1);
 }
 
 function storedDeflate(data: Buffer): Buffer {
