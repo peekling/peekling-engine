@@ -14,7 +14,7 @@ Before preparing a release, confirm all of the following:
 - Configure the public GitHub origin. Package `repository`, `homepage`, and
   `bugs` values must be derived from that origin.
 - Confirm that CI passes for the exact commit that will receive the tag.
-- Use an immutable tag in the form `v<workspace-version>`, such as `v0.1.0`.
+- Use an immutable tag in the form `v<workspace-version>`, such as `v0.1.1`.
 - Keep the source repository public so npm can attach public provenance.
 - Confirm access to the `@peekling` npm scope and the protected `npm-production`
   GitHub environment.
