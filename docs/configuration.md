@@ -196,7 +196,7 @@ The complete browser bundle exposes the same hatch contract:
 ```html
 <script
   defer
-  src="https://cdn.jsdelivr.net/npm/@peekling/runtime@0.1.1/dist/peekling.min.js"
+  src="https://cdn.jsdelivr.net/npm/@peekling/runtime@0.1.0/dist/peekling.min.js"
   integrity="sha384-<release-hash>"
   crossorigin="anonymous"
 ></script>
@@ -216,7 +216,7 @@ The Web Component owns one hatch instance per connected mount:
 <peekling-character
   id="moss"
   pack-url="/peeklings/moss/0.1.0/character.json"
-  styles-url="https://cdn.jsdelivr.net/npm/@peekling/runtime@0.1.1/dist/peekling.css"
+  styles-url="https://cdn.jsdelivr.net/npm/@peekling/runtime@0.1.0/dist/peekling.css"
   styles-integrity="sha256-<stylesheet-release-hash>"
 ></peekling-character>
 <script type="module" src="/assets/moss-peekling.js"></script>
@@ -799,7 +799,7 @@ configuration when the stylesheet is hosted elsewhere:
 const companion = Peekling.hatch({
   packUrl: "/packs/moss/character.json",
   styles: {
-    url: "https://static.example.com/peekling/0.1.1/peekling.css",
+    url: "https://static.example.com/peekling/0.1.0/peekling.css",
     integrity: "sha256-<stylesheet-release-hash>",
   },
 });

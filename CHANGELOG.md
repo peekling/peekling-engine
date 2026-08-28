@@ -2,15 +2,6 @@
 
 This file records changes by version.
 
-## 0.1.1
-
-- Hardened CLI PNG validation against incomplete compressed streams, trailing
-  streams, and invalid decompressed scanline lengths.
-- Kept Chromium example checks strict while recognizing exact fixture resource
-  cancellations after the asserted runtime behavior succeeds.
-- Decoupled the pinned default character Pack version from engine package patch
-  versions.
-
 ## 0.1.0
 
 Initial package set:
@@ -25,5 +16,10 @@ Initial package set:
   cleanup.
 - Closed Configuration, CLI, Vite filesystem, adapter, Pack-image, and release
   workflow boundaries with adversarial regression coverage.
+- Hardened CLI PNG validation against incomplete compressed streams, trailing
+  streams, and invalid decompressed scanline lengths.
+- Kept Chromium example checks strict while recognizing exact fixture resource
+  cancellations after the asserted runtime behavior succeeds.
+- Pinned the default character Pack independently from engine package versions.
 
 No migration aliases are part of the `0.1.0` contract.

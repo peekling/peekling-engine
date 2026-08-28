@@ -10,7 +10,7 @@ data cannot contain code, callbacks, DOM nodes, or raw HTML.
 ## Install
 
 ```sh
-npm install @peekling/runtime@0.1.1
+npm install @peekling/runtime@0.1.0
 ```
 
 The runtime supports modern ESM applications and the complete browser bundle.
@@ -150,14 +150,14 @@ free. The element is a lifecycle facade over hatch, not a second engine.
 ```html
 <script
   defer
-  src="https://cdn.jsdelivr.net/npm/@peekling/runtime@0.1.1/dist/peekling.min.js"
+  src="https://cdn.jsdelivr.net/npm/@peekling/runtime@0.1.0/dist/peekling.min.js"
   integrity="sha384-<runtime-release-hash>"
   crossorigin="anonymous"
 ></script>
 
 <peekling-character
   character="peek"
-  styles-url="https://cdn.jsdelivr.net/npm/@peekling/runtime@0.1.1/dist/peekling.css"
+  styles-url="https://cdn.jsdelivr.net/npm/@peekling/runtime@0.1.0/dist/peekling.css"
   styles-integrity="sha256-<stylesheet-release-hash>"
 ></peekling-character>
 ```

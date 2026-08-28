@@ -1,6 +1,6 @@
 {
   "name": "@peekling/cli",
-  "version": "0.1.1",
+  "version": "0.1.0",
   "description": "Inspect Peekling configuration and author data-only character packs",
   "license": "Apache-2.0",
   "author": {
@@ -45,9 +45,9 @@
     }
   },
   "dependencies": {
-    "@peekling/adapter-codex-pet": "0.1.1",
-    "@peekling/preflight": "0.1.1",
-    "@peekling/runtime": "0.1.1",
+    "@peekling/adapter-codex-pet": "0.1.0",
+    "@peekling/preflight": "0.1.0",
+    "@peekling/runtime": "0.1.0",
     "pngjs": "^7.0.0"
   },
   "scripts": {

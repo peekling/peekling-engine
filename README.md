@@ -119,13 +119,13 @@ path with a valid manifest hosted by the application:
 ```html
 <script
   defer
-  src="https://cdn.jsdelivr.net/npm/@peekling/runtime@0.1.1/dist/peekling.min.js"
+  src="https://cdn.jsdelivr.net/npm/@peekling/runtime@0.1.0/dist/peekling.min.js"
   integrity="sha384-<runtime-sri-from-build>"
   crossorigin="anonymous"
 ></script>
 <peekling-character
   pack-url="/peeklings/my-character/character.json"
-  styles-url="https://cdn.jsdelivr.net/npm/@peekling/runtime@0.1.1/dist/peekling.css"
+  styles-url="https://cdn.jsdelivr.net/npm/@peekling/runtime@0.1.0/dist/peekling.css"
   styles-integrity="sha256-<stylesheet-sri-from-build>"
 ></peekling-character>
 ```
