@@ -26,7 +26,7 @@ Before preparing a release, confirm all of the following:
 | `npm run check:core`                     | Formatting, builds, linting, boundaries, workflow policy, metadata, distribution, types, tests, local size, and smoke performance |
 | `npm run release:verify:packages`        | Clean-source reconstruction, reproducible builds, package scans, archives, and isolated consumer checks                           |
 | `npm run release:verify:local`           | Full local release verification without requiring a tag or clean immutable source                                                 |
-| `npm run release:verify -- --tag v0.1.0` | Full release verification plus clean-source, origin, and exact-tag checks                                                         |
+| `npm run release:verify -- --tag v0.1.1` | Full release verification plus clean-source, origin, and exact-tag checks                                                         |
 | `npm run release:workflows`              | Static checks for the CI and publication workflow safety controls                                                                 |
 | `npm run size:release`                   | Canonical size evidence using the exact release toolchain                                                                         |
 
@@ -86,7 +86,9 @@ artifact hashes, compressed measurements, and controlled documentation.
 The manual publication workflow runs `npm run test:peek:published` before
 release certification. This gate fetches the exact version-pinned default
 character manifest, verifies its embedded SHA-256, and rejects the release when
-the default `character: "peek"` path is unavailable or has drifted.
+the default `character: "peek"` path is unavailable or has drifted. The default
+character Pack has its own pinned version. An engine patch release does not
+require an otherwise unchanged character Pack to publish the same version.
 
 The local verifier runs:
 
@@ -204,7 +206,7 @@ verification and complete the manual checks. Then run the immutable-source
 verification with the intended tag:
 
 ```sh
-npm run release:verify -- --tag v0.1.0
+npm run release:verify -- --tag v0.1.1
 ```
 
 A passing result requires a clean tracked commit, an exact tag on that commit, a

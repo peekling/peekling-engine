@@ -2,6 +2,15 @@
 
 This file records changes by version.
 
+## 0.1.1
+
+- Hardened CLI PNG validation against incomplete compressed streams, trailing
+  streams, and invalid decompressed scanline lengths.
+- Kept Chromium example checks strict while recognizing exact fixture resource
+  cancellations after the asserted runtime behavior succeeds.
+- Decoupled the pinned default character Pack version from engine package patch
+  versions.
+
 ## 0.1.0
 
 Initial package set:

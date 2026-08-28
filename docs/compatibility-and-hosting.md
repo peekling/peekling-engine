@@ -271,9 +271,9 @@ jsDelivr, loaded from UNPKG, or copied to a customer-controlled static host. The
 canonical exact-version examples are:
 
 ```text
-https://cdn.jsdelivr.net/npm/@peekling/runtime@0.1.0/dist/peekling.min.js
-https://unpkg.com/@peekling/runtime@0.1.0/dist/peekling.min.js
-https://static.example.com/peekling/0.1.0/peekling.min.js
+https://cdn.jsdelivr.net/npm/@peekling/runtime@0.1.1/dist/peekling.min.js
+https://unpkg.com/@peekling/runtime@0.1.1/dist/peekling.min.js
+https://static.example.com/peekling/0.1.1/peekling.min.js
 ```
 
 The build emits `peekling.js` for readable debugging, `peekling.min.js` for

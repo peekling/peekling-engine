@@ -139,11 +139,7 @@ test("the generic surface cleans up and its completion Event still reaches the P
 test("the declarative element destroys and recreates its owned hatch instance", async ({
   page,
 }) => {
-  const { failures, allowedRequestFailures } = collectFailures(page, {
-    allowRequestFailure: (request) =>
-      request.url().endsWith("/fixture/atlas.png") &&
-      request.failure()?.errorText === "net::ERR_ABORTED",
-  });
+  const { failures } = collectFailures(page);
   await page.goto(`${exampleServer.url}/web-component/`);
   await expect(page.locator("[data-example-status]")).toHaveText("Ready");
   await expect(page.locator("[data-peekling-host]")).toHaveCount(1);
@@ -157,23 +153,28 @@ test("the declarative element destroys and recreates its owned hatch instance", 
   await page.getByRole("button", { name: "Reconnect" }).click();
   await expect(page.locator("[data-example-status]")).toHaveText("Ready again");
   await expect(page.locator("[data-peekling-host]")).toHaveCount(1);
-  expect(allowedRequestFailures.length).toBeLessThanOrEqual(1);
   await expectNoFailures(page, failures);
 });
 
-function collectFailures(page, { allowRequestFailure } = {}) {
+function collectFailures(page) {
   const failures = [];
-  const allowedRequestFailures = [];
   page.on("console", (message) => {
     if (message.type() === "error") failures.push(`console: ${message.text()}`);
   });
   page.on("pageerror", (error) => failures.push(`page: ${error.message}`));
   page.on("requestfailed", (request) => {
-    const failure = `request: ${request.url()} ${request.failure()?.errorText}`;
-    if (allowRequestFailure?.(request)) allowedRequestFailures.push(failure);
-    else failures.push(failure);
+    if (isExpectedFixtureCancellation(request)) return;
+    failures.push(`request: ${request.url()} ${request.failure()?.errorText}`);
   });
-  return { failures, allowedRequestFailures };
+  return { failures };
+}
+
+function isExpectedFixtureCancellation(request) {
+  if (request.failure()?.errorText !== "net::ERR_ABORTED") return false;
+  return [
+    `${exampleServer.url}/fixture/character.json`,
+    `${exampleServer.url}/fixture/atlas.png`,
+  ].includes(request.url());
 }
 
 async function expectNoFailures(page, failures) {

@@ -16,22 +16,36 @@ const runtimeUrl = `https://cdn.jsdelivr.net/npm/@peekling/runtime@${version}/di
 const unpkgRuntimeUrl = `https://unpkg.com/@peekling/runtime@${version}/dist/peekling.min.js`;
 const stylesheetUrl = `https://cdn.jsdelivr.net/npm/@peekling/runtime@${version}/dist/peekling.css`;
 const selfHostedRuntimeUrl = `https://static.example.com/peekling/${version}/peekling.min.js`;
-const characterUrl = `https://cdn.jsdelivr.net/npm/@peekling/pack-peek@${version}/character.json`;
-const [readme, hosting, registry, readableBrowser, compactBrowser] =
-  await Promise.all([
-    readFile("README.md", "utf8"),
-    readFile("docs/compatibility-and-hosting.md", "utf8"),
-    readFile("packages/runtime/src/registry.ts", "utf8"),
-    readFile("packages/runtime/dist/peekling.js", "utf8"),
-    readFile("packages/runtime/dist/peekling.min.js", "utf8"),
-  ]);
+const [
+  readme,
+  hosting,
+  registry,
+  defaultCharacterCheck,
+  readableBrowser,
+  compactBrowser,
+] = await Promise.all([
+  readFile("README.md", "utf8"),
+  readFile("docs/compatibility-and-hosting.md", "utf8"),
+  readFile("packages/runtime/src/registry.ts", "utf8"),
+  readFile("scripts/check-default-character.mjs", "utf8"),
+  readFile("packages/runtime/dist/peekling.js", "utf8"),
+  readFile("packages/runtime/dist/peekling.min.js", "utf8"),
+]);
+const characterUrl = registry.match(
+  /https:\/\/cdn\.jsdelivr\.net\/npm\/@peekling\/pack-peek@\d+\.\d+\.\d+\/character\.json/,
+)?.[0];
+if (!characterUrl) {
+  throw new Error(
+    "Official registry is missing an exact-version Peek manifest URL",
+  );
+}
 
 for (const [label, source, urls] of [
   ["README", readme, [runtimeUrl, stylesheetUrl]],
   [
     "hosting guide",
     hosting,
-    [runtimeUrl, unpkgRuntimeUrl, selfHostedRuntimeUrl],
+    [runtimeUrl, unpkgRuntimeUrl, selfHostedRuntimeUrl, characterUrl],
   ],
   ["official registry", registry, [characterUrl]],
   ["readable browser artifact", readableBrowser, [characterUrl]],
@@ -42,6 +56,11 @@ for (const [label, source, urls] of [
       throw new Error(`${label} is missing workspace-version URL ${url}`);
     }
   }
+}
+if (!defaultCharacterCheck.includes(characterUrl)) {
+  throw new Error(
+    "Published default-character check does not match the official registry",
+  );
 }
 if (!readableBrowser.startsWith(`/*! @peekling/runtime ${version} |`)) {
   throw new Error("Readable browser banner does not match workspace version");
@@ -73,9 +92,7 @@ for (const [label, source] of [
 }
 
 const combined = [readme, hosting, registry].join("\n");
-for (const match of combined.matchAll(
-  /@peekling\/(?:runtime|pack-peek)@(\d+\.\d+\.\d+)/g,
-)) {
+for (const match of combined.matchAll(/@peekling\/runtime@(\d+\.\d+\.\d+)/g)) {
   if (match[1] !== version) {
     throw new Error(
       `Public distribution URL still pins stale version ${match[1]}`,

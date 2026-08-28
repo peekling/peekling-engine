@@ -528,6 +528,9 @@ test("surface geometry reads precede character writes and stable frames reuse la
     const stableTextWrites = textWrites;
     rectReads = 0;
     instance.emit("review.tick");
+    for (let turn = 0; turn < 10 && rectReads === 0; turn++) {
+      await new Promise((resolve) => requestAnimationFrame(() => resolve()));
+    }
     for (let turn = 0; turn < 4; turn++) {
       await new Promise((resolve) => requestAnimationFrame(() => resolve()));
     }

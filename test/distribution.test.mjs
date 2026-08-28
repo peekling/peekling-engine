@@ -151,6 +151,7 @@ test("distribution audit derives pinned URLs from the workspace version", async 
       "packages/runtime/dist/peekling.css",
       "packages/runtime/dist/peekling.css.sri",
       "scripts/build.mjs",
+      "scripts/check-default-character.mjs",
     ];
     for (const file of files) {
       const target = path.join(temporaryRoot, file);
