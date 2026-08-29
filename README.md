@@ -298,5 +298,4 @@ The engine and its original tooling are Apache-2.0. Character artwork keeps its
 own Pack license. See [licensing and attribution](LICENSING.md) and
 [`NOTICE`](NOTICE) for the repository boundary.
 
-
 ![A narrow strip of grass, wildflowers, foliage, and a winding path](https://cdn.peekling.com/v1/community/peekling-ground-footer-v1.png)
