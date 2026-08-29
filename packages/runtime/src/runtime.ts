@@ -172,6 +172,8 @@ export type PeeklingPosition =
 export type PeeklingPressAction =
   "toggle-content" | "show-content" | "hide-content" | "emit" | "none";
 
+export type PeeklingMotionPreference = "system" | "full" | "reduce";
+
 export interface PeeklingInteractionOptions {
   /** Defaults to toggle-content. Setting pressEvent defaults this to emit. */
   press?: PeeklingPressAction;
@@ -244,6 +246,8 @@ export interface PeeklingOptions {
   position?: PeeklingPosition;
   density?: 1 | 2 | 4;
   maxDensity?: 1 | 2 | 4;
+  /** Defaults to system. Hosts may explicitly request full or reduced motion. */
+  motionPreference?: PeeklingMotionPreference;
   onDiagnostic?: (message: string) => void;
   document?: Document;
   window?: Window;
@@ -782,20 +786,25 @@ export class PeeklingRuntime implements PeeklingInstance {
       if (this.#displayName === "") {
         this.#displayName = loaded.content.displayName;
       }
+      const motionPreference = this.#options.motionPreference ?? "system";
       this.#media = this.#window.matchMedia("(prefers-reduced-motion: reduce)");
-      this.#reducedMotion = this.#media.matches;
-      this.#mediaListener = (event) => {
-        this.#reducedMotion = event.matches;
-        this.#notice(
-          event.matches
-            ? "lifecycle.reduced-motion-enabled"
-            : "lifecycle.reduced-motion-disabled",
-          "info",
-          "lifecycle",
-        );
-        this.#wake();
-      };
-      this.#media.addEventListener("change", this.#mediaListener);
+      this.#reducedMotion =
+        motionPreference === "reduce" ||
+        (motionPreference === "system" && this.#media.matches);
+      if (motionPreference === "system") {
+        this.#mediaListener = (event) => {
+          this.#reducedMotion = event.matches;
+          this.#notice(
+            event.matches
+              ? "lifecycle.reduced-motion-enabled"
+              : "lifecycle.reduced-motion-disabled",
+            "info",
+            "lifecycle",
+          );
+          this.#wake();
+        };
+        this.#media.addEventListener("change", this.#mediaListener);
+      }
       this.#watchDpr();
       this.#position = resolveInitialPosition(
         this.#options.position ?? DEFAULT_POSITION,

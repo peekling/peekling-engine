@@ -2,6 +2,13 @@
 
 This file records changes by version.
 
+## 0.1.3
+
+- Added `motionPreference` with `system`, `full`, and `reduce` policies.
+- Kept the default browser preference behavior unchanged.
+- Let hosts keep direct touch manipulation and gravity active when full motion
+  is essential to the experience.
+
 ## 0.1.2
 
 - Removed the native mobile tap flash from the character interaction control.

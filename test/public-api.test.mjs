@@ -43,6 +43,7 @@ const PUBLIC_RUNTIME_TYPES = [
   "PeeklingIndicator",
   "PeeklingInstance",
   "PeeklingInteractionOptions",
+  "PeeklingMotionPreference",
   "PeeklingOptions",
   "PeeklingPackSelection",
   "PeeklingPosition",

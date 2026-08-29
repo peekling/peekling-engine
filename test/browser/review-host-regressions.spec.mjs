@@ -300,6 +300,71 @@ test("a canceled touch drag falls instead of remaining suspended", async ({
   expect(result.second.y).toBeGreaterThan(result.first.y);
 });
 
+test("full motion keeps direct touch physics active when the OS requests reduced motion", async ({
+  page,
+}) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  const result = await page.evaluate(async (input) => {
+    const roots = [];
+    const attachShadow = Element.prototype.attachShadow;
+    Element.prototype.attachShadow = function (options) {
+      const root = attachShadow.call(this, options);
+      roots.push(root);
+      return root;
+    };
+    const state = { frames: [0], fps: 1, loop: true };
+    const instance = Peekling.hatch({
+      ...input,
+      motionPreference: "full",
+      position: { x: 80, y: 80 },
+      pack: {
+        ...input.pack,
+        states: {
+          idle: state,
+          "scroll:fly": state,
+          "scroll:fall": state,
+          success: state,
+        },
+      },
+      interaction: { drag: true, throw: true, gravity: 1_600 },
+    });
+    await instance.ready;
+    const control = roots
+      .map((root) => root.querySelector(".peekling-character-hit"))
+      .find(Boolean);
+    if (!control)
+      throw new Error("Character interaction control was not mounted");
+    const pointer = (type, x, y) =>
+      control.dispatchEvent(
+        new PointerEvent(type, {
+          bubbles: true,
+          buttons: type === "pointerdown" || type === "pointermove" ? 1 : 0,
+          clientX: x,
+          clientY: y,
+          isPrimary: true,
+          pointerId: 8,
+          pointerType: "touch",
+        }),
+      );
+    pointer("pointerdown", 80, 80);
+    pointer("pointermove", 120, 140);
+    pointer("pointercancel", 120, 140);
+    await new Promise((resolve) =>
+      requestAnimationFrame(() => requestAnimationFrame(resolve)),
+    );
+    const host = document.querySelector("[data-peekling-host]");
+    const first = Number(host.getAttribute("data-peekling-y"));
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    const second = Number(host.getAttribute("data-peekling-y"));
+    const stateName = host.getAttribute("data-peekling-state");
+    instance.destroy();
+    return { first, second, stateName };
+  }, hatchInput());
+
+  expect(result.stateName).toBe("scroll:fall");
+  expect(result.second).toBeGreaterThan(result.first);
+});
+
 test("a timed dismissal refreshes when its stored deadline expires", async ({
   page,
 }) => {

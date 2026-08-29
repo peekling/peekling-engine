@@ -10,7 +10,7 @@ data cannot contain code, callbacks, DOM nodes, or raw HTML.
 ## Install
 
 ```sh
-npm install @peekling/runtime@0.1.2
+npm install @peekling/runtime@0.1.3
 ```
 
 The runtime supports modern ESM applications and the complete browser bundle.
@@ -197,14 +197,14 @@ free. The element is a lifecycle facade over hatch, not a second engine.
 ```html
 <script
   defer
-  src="https://cdn.jsdelivr.net/npm/@peekling/runtime@0.1.2/dist/peekling.min.js"
+  src="https://cdn.jsdelivr.net/npm/@peekling/runtime@0.1.3/dist/peekling.min.js"
   integrity="sha384-<runtime-release-hash>"
   crossorigin="anonymous"
 ></script>
 
 <peekling-character
   character="peek"
-  styles-url="https://cdn.jsdelivr.net/npm/@peekling/runtime@0.1.2/dist/peekling.css"
+  styles-url="https://cdn.jsdelivr.net/npm/@peekling/runtime@0.1.3/dist/peekling.css"
   styles-integrity="sha256-<stylesheet-release-hash>"
 ></peekling-character>
 ```
@@ -254,7 +254,9 @@ expiry, or teardown.
 
 Reduced motion is a rendering policy, not another Plan. It shows a validated
 static tableau and suppresses incompatible motion while preserving host-page
-interaction.
+interaction. `motionPreference` defaults to `"system"`. Choose `"full"` when
+direct manipulation and physics are essential, or `"reduce"` for an explicitly
+static instance.
 
 Direct hatch integrations in single-page applications must call `destroy()` when
 the owning view unmounts. `pushState`, hash changes, and client-side route
@@ -320,15 +322,15 @@ host surfaces, blocked stylesheets, suspension, dismissal recovery, remount
 cleanup, hostile host layout, root repair, and contained failures in Chromium,
 Firefox, and WebKit.
 
-The 0.1.2 record below measures the interaction and renderer release with the
+The 0.1.3 record below measures the interaction and renderer release with the
 exact release toolchain and required reserve.
 
 <!-- peekling-size-evidence:start -->
 
-The recorded canonical delivery measurement is 38,139 bytes gzip and 33,418
+The recorded canonical delivery measurement is 38,200 bytes gzip and 33,541
 bytes Brotli. Against the 40 KiB gzip and 40 KiB Brotli caps, that recorded
-build leaves 2,821 bytes of gzip headroom and 7,542 bytes of Brotli headroom.
-After the required 256-byte reserve, 2,565 gzip bytes and 7,286 Brotli bytes
+build leaves 2,760 bytes of gzip headroom and 7,419 bytes of Brotli headroom.
+After the required 256-byte reserve, 2,504 gzip bytes and 7,163 Brotli bytes
 remain for that build.
 <!-- peekling-size-evidence:end -->
 

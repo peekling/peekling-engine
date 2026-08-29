@@ -1,6 +1,6 @@
 {
   "name": "@peekling/vite",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Development-time Peekling validation for Vite projects",
   "license": "Apache-2.0",
   "author": {
@@ -42,7 +42,7 @@
     }
   },
   "dependencies": {
-    "@peekling/preflight": "0.1.2"
+    "@peekling/preflight": "0.1.3"
   },
   "peerDependencies": {
     "vite": "^8.0.0"

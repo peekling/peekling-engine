@@ -42,6 +42,7 @@ test("readable and minified browser builds publish the same façade with matchin
     "theme",
     "diagnostics",
     "accessibility",
+    "motionPreference",
     "until",
     "effect",
     "contentId",

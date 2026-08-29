@@ -3,6 +3,7 @@ import {
   PeeklingRuntime,
   type PeeklingHatchInput,
   type PeeklingInstance,
+  type PeeklingMotionPreference,
   type PeeklingOptions,
 } from "./runtime.js";
 
@@ -16,5 +17,6 @@ export function hatchCanvas(
 export type {
   PeeklingHatchInput,
   PeeklingInstance,
+  PeeklingMotionPreference,
   PeeklingOptions,
 } from "./runtime.js";

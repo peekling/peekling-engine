@@ -1,6 +1,6 @@
 {
   "name": "@peekling/adapter-codex-pet",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Optional data-only Codex Pet v2 compatibility adapter for Peekling",
   "license": "Apache-2.0",
   "author": {
@@ -43,7 +43,7 @@
     }
   },
   "dependencies": {
-    "@peekling/runtime": "0.1.2"
+    "@peekling/runtime": "0.1.3"
   },
   "scripts": {
     "build": "tsc -b",

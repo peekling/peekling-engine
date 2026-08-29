@@ -32,6 +32,7 @@ test("the authoritative options schema is valid JSON with closed objects", async
     "pack",
     "packUrl",
     "density",
+    "motionPreference",
     "position",
     "plan",
     "content",

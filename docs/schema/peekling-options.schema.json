@@ -62,6 +62,11 @@
       "description": "Highest atlas density the runtime may load.",
       "default": 4
     },
+    "motionPreference": {
+      "enum": ["system", "full", "reduce"],
+      "description": "Motion policy for this instance. System follows the browser preference. Full and reduce are explicit host choices.",
+      "default": "system"
+    },
     "scale": {
       "type": "integer",
       "minimum": 1,

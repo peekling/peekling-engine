@@ -1,7 +1,7 @@
 # Configure Peekling
 
 > [!IMPORTANT] This guide describes the implemented public contract for version
-> `0.1.2`. The [execution model](execution-model.md) is authoritative for
+> `0.1.3`. The [execution model](execution-model.md) is authoritative for
 > scheduling and lifecycle ordering. The [release guide](RELEASING.md) covers
 > source provenance and publication.
 
@@ -63,6 +63,10 @@ The available presets are `companion`, `still`, `bottom-patrol`, and
 character click toggles its owned content bubble when one exists. The
 [interaction and motion guide](interaction-and-motion.md) explains those
 defaults and the optional fields that change them.
+
+Motion follows the visitor's browser preference by default. Set
+`motionPreference: "full"` when direct manipulation and physics are essential to
+the experience, or `motionPreference: "reduce"` for a static presentation.
 
 ## Happy path
 
@@ -212,7 +216,7 @@ The complete browser bundle exposes the same hatch contract:
 ```html
 <script
   defer
-  src="https://cdn.jsdelivr.net/npm/@peekling/runtime@0.1.2/dist/peekling.min.js"
+  src="https://cdn.jsdelivr.net/npm/@peekling/runtime@0.1.3/dist/peekling.min.js"
   integrity="sha384-<release-hash>"
   crossorigin="anonymous"
 ></script>
@@ -232,7 +236,7 @@ The Web Component owns one hatch instance per connected mount:
 <peekling-character
   id="moss"
   pack-url="/peeklings/moss/0.1.1/character.json"
-  styles-url="https://cdn.jsdelivr.net/npm/@peekling/runtime@0.1.2/dist/peekling.css"
+  styles-url="https://cdn.jsdelivr.net/npm/@peekling/runtime@0.1.3/dist/peekling.css"
   styles-integrity="sha256-<stylesheet-release-hash>"
 ></peekling-character>
 <script type="module" src="/assets/moss-peekling.js"></script>
@@ -408,7 +412,7 @@ example, a pointer Rule can own motion while `job.progress` owns only
 
 ### Motion modes
 
-`motion` is a closed discriminated union. Version `0.1.2` accepts these forms:
+`motion` is a closed discriminated union. Version `0.1.3` accepts these forms:
 
 | Type                | Purpose                                                      | Main optional fields               |
 | ------------------- | ------------------------------------------------------------ | ---------------------------------- |
@@ -732,7 +736,7 @@ High-frequency progress should use eligible `coalesce: "latest"` Rules or be
 rate-limited by host code before it calls `emit`. Session IDs and ordered
 revisions remain part of admission even when intermediate Events coalesce. This
 approach keeps content changes inside one validation, ordering, lifecycle, and
-diagnostic model. `0.1.2` has no runtime `rateLimit` Plan field or second direct
+diagnostic model. `0.1.3` has no runtime `rateLimit` Plan field or second direct
 content-update interface.
 
 ## ESM and browser-bundle delivery
@@ -864,7 +868,8 @@ full lifecycle sequence. The practical rules are:
   the owning view without ending the document.
 - treat pause, hidden-page suspension, and site dismissal as composable reasons.
 - do not expect catch-up animation or Event bursts after resume.
-- expect reduced motion to replace motion with a safe tableau.
+- expect the default `motionPreference: "system"` to replace motion with a safe
+  tableau when the browser requests reduced motion.
 - expect normal CSP, CORS, mixed-content, and browser policy to remain in force.
 
 Ordinary parked instances own no runtime frame, Plan timer, or evaluator work. A
@@ -882,7 +887,7 @@ tasks can delay Peekling frames. Peekling therefore promises bounded measured
 work and graceful degradation, not independent frame timing.
 
 An instance lasts for one document lifetime unless the host destroys it sooner.
-`0.1.2` does not restore Plan state, Event queues, Overrides, position, content
+`0.1.3` does not restore Plan state, Event queues, Overrides, position, content
 state, or handles after `pagehide`. A `pushState`, hash, or client-side route
 change does not end a direct hatch instance by itself. Single-page applications
 must call `destroy()` when its owning view ends, or disconnect the Web Component
@@ -900,7 +905,7 @@ settles exactly once after cleanup with reason `destroyed`, `pagehide`, or
 
 ## Strict CSP
 
-Strict Content Security Policy compatibility is a `0.1.2` release gate. Peekling
+Strict Content Security Policy compatibility is a `0.1.3` release gate. Peekling
 must not require `unsafe-inline` or `unsafe-eval`. It does not inject raw HTML
 or inline event attributes.
 
@@ -930,7 +935,7 @@ configuration when the stylesheet is hosted elsewhere:
 const companion = Peekling.hatch({
   packUrl: "/packs/moss/character.json",
   styles: {
-    url: "https://static.example.com/peekling/0.1.2/peekling.css",
+    url: "https://static.example.com/peekling/0.1.3/peekling.css",
     integrity: "sha256-<stylesheet-release-hash>",
   },
 });

@@ -36,6 +36,7 @@ const CONFIGURATION_FIELDS = [
   "position",
   "density",
   "maxDensity",
+  "motionPreference",
   "onDiagnostic",
   "logger",
   "document",
@@ -133,6 +134,16 @@ export function validateConfiguration(
     options.density > options.maxDensity
   ) {
     reportConfigurationFault("incompatible-density", "$.density", fault);
+  }
+  if (
+    options.motionPreference !== undefined &&
+    !["system", "full", "reduce"].includes(options.motionPreference)
+  ) {
+    reportConfigurationFault(
+      "invalid-motion-preference",
+      "$.motionPreference",
+      fault,
+    );
   }
   if (!validRuntimeName(options.name)) {
     reportConfigurationFault("invalid-name", "$.name", fault);

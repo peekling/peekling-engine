@@ -228,6 +228,10 @@ export const invalidSerializableConfigurationCases = [
     configuration: { character: "peek", diagnostics: [] },
   },
   {
+    name: "invalid motion preference",
+    configuration: { character: "peek", motionPreference: "automatic" },
+  },
+  {
     name: "null diagnostic context",
     configuration: {
       character: "peek",
@@ -333,6 +337,7 @@ export const validSerializableConfigurationCases = [
       theme: {},
       accessibility: {},
       diagnostics: { context: {} },
+      motionPreference: "full",
     },
   },
   {

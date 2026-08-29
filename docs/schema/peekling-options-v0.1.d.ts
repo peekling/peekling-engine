@@ -35,6 +35,8 @@ export interface SerializablePeeklingOptionFields {
   density?: Density;
   /** Highest atlas density the runtime may load. Default `4`. JSON-safe. */
   maxDensity?: Density;
+  /** Motion policy for this instance. Default `system` follows the browser preference. */
+  motionPreference?: "system" | "full" | "reduce";
   /** Logical sprite scale, integer 1 through 4. The validated pack default applies when omitted. */
   scale?: number;
   /** Initial viewport center. Default `bottom-right`. Coordinates are CSS pixels. JSON-safe. */

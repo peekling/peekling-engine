@@ -6,6 +6,7 @@ export {
   type PeeklingIndicator,
   type PeeklingInteractionOptions,
   type PeeklingInstance,
+  type PeeklingMotionPreference,
   type PeeklingOptions,
   type PeeklingPackSelection,
   type PeeklingPosition,
