@@ -73,6 +73,12 @@ Expected result: `ready` resolves after the Pack, atlas, and stylesheet have
 been validated and loaded. The instance renders the Pack's `idle` State until
 the Plan or a temporary Override selects another supported State.
 
+For the standard website companion, replace the explicit Plan with
+`preset: "companion"`. Named presets compile into the same canonical Plan. The
+character is draggable and throwable by default, and a character click toggles
+its owned content bubble. Product-specific motion remains plain JSON Plan data,
+including viewport traversal, host targets, jumps, and custom SVG paths.
+
 For the complete Configuration shape, error behavior, Events, Effects, and
 content surfaces, read [Configure Peekling](docs/configuration.md).
 
@@ -103,6 +109,7 @@ temporary Overrides, lifecycle behavior, and cleanup.
 | JavaScript or TypeScript application | `hatch(configuration)`          | Creates one owned runtime instance                                           |
 | Browser-global script                | `Peekling.hatch(configuration)` | Exposes the same hatch contract from the complete browser artifact           |
 | HTML-first page                      | `<peekling-character>`          | Owns one hatch instance for each connected mount                             |
+| Canvas character presentation        | `hatchCanvas(configuration)`    | Uses Canvas 2D with the same Plan, interaction, content, and lifecycle       |
 | Programmatic validation              | `@peekling/preflight`           | Checks bounded Configuration, Plan, and optional Pack data                   |
 | Vite validation                      | `@peekling/vite`                | Runs Preflight at startup, on watched JSON changes, and before builds        |
 | Command line and Pack authoring      | `peekling`                      | Runs Doctor and the Pack creation, compilation, import, and validation tools |
@@ -121,13 +128,13 @@ path with a valid manifest hosted by the application:
 ```html
 <script
   defer
-  src="https://cdn.jsdelivr.net/npm/@peekling/runtime@0.1.0/dist/peekling.min.js"
+  src="https://cdn.jsdelivr.net/npm/@peekling/runtime@0.1.1/dist/peekling.min.js"
   integrity="sha384-<runtime-sri-from-build>"
   crossorigin="anonymous"
 ></script>
 <peekling-character
   pack-url="/peeklings/my-character/character.json"
-  styles-url="https://cdn.jsdelivr.net/npm/@peekling/runtime@0.1.0/dist/peekling.css"
+  styles-url="https://cdn.jsdelivr.net/npm/@peekling/runtime@0.1.1/dist/peekling.css"
   styles-integrity="sha256-<stylesheet-sri-from-build>"
 ></peekling-character>
 ```
@@ -212,21 +219,21 @@ Read the [`@peekling/cli`](packages/cli/README.md),
 ## Bundle budget
 
 The complete browser artifact has separate gzip and Brotli release gates. The
-record below is generated from canonical artifact evidence and is tied to its
-recorded hashes.
+0.1.1 record below measures the interaction and renderer release with the exact
+release toolchain and required reserve.
 
 <!-- peekling-size-evidence:start -->
 
-The recorded canonical delivery measurement is 32,287 bytes gzip and 28,635
-bytes Brotli. Against the 32 KiB gzip and 32 KiB Brotli caps, that recorded
-build leaves 481 bytes of gzip headroom and 4,133 bytes of Brotli headroom.
-After the required 256-byte reserve, 225 gzip bytes and 3,877 Brotli bytes
+The recorded canonical delivery measurement is 38,081 bytes gzip and 33,398
+bytes Brotli. Against the 40 KiB gzip and 40 KiB Brotli caps, that recorded
+build leaves 2,879 bytes of gzip headroom and 7,562 bytes of Brotli headroom.
+After the required 256-byte reserve, 2,623 gzip bytes and 7,306 Brotli bytes
 remain for that build.
 <!-- peekling-size-evidence:end -->
 
 Node 22.14.0, npm 11.16.0, and Node's default zlib compression define the exact
 release-size measurement environment. Other supported Node versions can run a
-local size check, but they do not certify the recorded figures.
+local size check, but they do not certify the historical figures.
 
 ## Develop and verify
 
@@ -279,6 +286,7 @@ Start here:
 Understand the engine:
 
 - [Execution model](docs/execution-model.md)
+- [Character interaction and motion](docs/interaction-and-motion.md)
 - [Engine design](DESIGN.md)
 - [Schema and type references](docs/schema/README.md)
 - [Browser performance release evidence](docs/browser-performance.md)

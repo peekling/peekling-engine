@@ -304,6 +304,8 @@ export class ContentRenderer {
   #name: string | undefined;
   #nameSelection: ContentSelection | undefined;
   #nameItem: HostContentItem | undefined;
+  #userHidden = false;
+  #hasVisibleSurface = false;
   #destroyed = false;
 
   constructor(document: Document, options: ContentRendererOptions = {}) {
@@ -386,6 +388,17 @@ export class ContentRenderer {
       if (surface.seen !== generation) this.#removeSurface(surface);
       if (this.#destroyed) return;
     }
+
+    let visible = false;
+    for (const surface of this.#surfaces.values()) {
+      if (!surface.host.hidden) {
+        visible = true;
+        break;
+      }
+    }
+    this.#hasVisibleSurface = visible;
+    const hidden = this.#userHidden || !visible;
+    if (this.#host.hidden !== hidden) this.#host.hidden = hidden;
 
     const viewportChanged =
       viewport.width !== this.#viewportWidth ||
@@ -477,14 +490,29 @@ export class ContentRenderer {
       }
       this.#placementDirty = false;
     }
-    let visible = false;
-    for (const surface of this.#surfaces.values()) {
-      if (!surface.host.hidden) {
-        visible = true;
-        break;
+  }
+
+  setUserHidden(hidden: boolean): boolean {
+    if (this.#destroyed) return false;
+    const wasHidden = this.#userHidden;
+    this.#userHidden = hidden;
+    this.#host.hidden = hidden || !this.#hasVisibleSurface;
+    if (wasHidden && !hidden && !this.#host.hidden) {
+      for (const surface of this.#surfaces.values()) {
+        if (!surface.host.hidden) surface.measureDirty = true;
       }
+      this.#placementDirty = true;
+      this.#wake();
     }
-    if (this.#host.hidden === visible) this.#host.hidden = !visible;
+    return !this.#userHidden;
+  }
+
+  toggleUserHidden(): boolean {
+    return this.setUserHidden(!this.#userHidden);
+  }
+
+  get userHidden(): boolean {
+    return this.#userHidden;
   }
 
   #select(

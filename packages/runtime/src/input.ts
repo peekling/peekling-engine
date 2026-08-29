@@ -197,9 +197,10 @@ export class InputCollector {
         true,
       );
     } else if (event === "window.scroll") {
-      listen(this.#window, "scroll", (input) =>
-        this.#captureObserved("window.scroll", input),
-      );
+      listen(this.#window, "scroll", (input) => {
+        this.#clearPointer();
+        this.#captureObserved("window.scroll", input);
+      });
     } else if (event === "window.focus") {
       listen(this.#window, "focus", () =>
         this.captureReaction("window.focus", { focused: true }, "browser"),

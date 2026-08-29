@@ -1,6 +1,6 @@
-# Peekling 0.1.0 execution model
+# Peekling 0.1.1 execution model
 
-> [!IMPORTANT] This is the implemented runtime contract for version `0.1.0`. The
+> [!IMPORTANT] This is the implemented runtime contract for version `0.1.1`. The
 > [configuration guide](configuration.md) is the task-oriented entry point.
 > Source, package, and publication checks live in the
 > [release guide](RELEASING.md).
@@ -18,7 +18,7 @@ One instance owns:
 - one normalized Event admission queue.
 - one bounded active Override set.
 - one scheduler and channel-aware Effect composer.
-- one renderer and generic content-surface manager.
+- one character renderer and one DOM content-surface manager.
 - one composable lifecycle and cleanup owner.
 
 There is no second simple behavior engine, hidden Plan, content scheduler, or
@@ -95,7 +95,7 @@ Programmatic teardown settles `finished` with reason `destroyed`. Page end uses
 reason `pagehide`. The promise settles exactly once after cleanup even when
 teardown signals repeat.
 
-`0.1.0` does not serialize, persist, restore, or transfer Plan state, Event
+`0.1.1` does not serialize, persist, restore, or transfer Plan state, Event
 queues, Overrides, character position, content state, or runtime handles across
 pages. Application-owned data may be passed into the new page's Configuration or
 emitted as new Events, but that is a fresh instance with fresh validation.
@@ -120,6 +120,12 @@ Observers capture the minimum bounded facts required for normalization. They do
 not cancel, stop, synthesize, or replace native page interaction. High-frequency
 observations update bounded state or coalesce under a documented policy. Event
 frequency never directly sets rendering cadence.
+
+An observed window scroll invalidates the current continuous pointer target
+before its scroll fact enters the queue. Follow-pointer motion therefore stops
+at the current character position. A later pointer observation establishes the
+next target and makes continuous pointer motion eligible again. Scroll remains a
+passively observed page interaction throughout this transition.
 
 Applications call `emit(name, payload)`. Admission validates the Event name and
 JSON-like payload, assigns an ID, and returns an accepted, coalesced, or
@@ -319,9 +325,80 @@ It cannot contain a callback, DOM node, HTML string, network instruction,
 telemetry instruction, or free-form predicate. A State name has no implicit
 motion meaning. Motion uses an explicit Pack Capability mapping.
 
+The closed motion union has seven modes. `follow-pointer` resolves a bounded
+vector toward the latest pointer target and stops at its arrival radius.
+`horizontal-patrol` alternates between left and right floor targets.
+`viewport-traverse` advances through safe floor, wall, ceiling, and wall phases.
+`move-to` targets one bounded viewport coordinate. `move-to-target` resolves an
+anchor from host-approved target geometry. `jump-to` interpolates a bounded
+coordinate and lift arc. `svg-path` samples detached browser SVG geometry over a
+bounded duration. No motion string is evaluated as code.
+
+Patrol and traversal targets use the current viewport, rendered character width
+and height, and declared edge inset. Target-aware motion reads a cached geometry
+snapshot that is invalidated by resize, relevant DOM mutation, and scroll. Path,
+jump, and direct coordinate samples clamp to character-safe viewport bounds.
+Each velocity-based movement request includes its remaining target distance, so
+a frame cannot overshoot the selected target.
+
+If follow-pointer motion has no target or produces no request inside its arrival
+radius, the composed output clears a selected `locomotion` Capability and uses
+the exact baseline State when one is declared. This normalization is independent
+of whether motion and State share one Effect owner. It does not replace an
+independently selected exact State or mutate channel ownership.
+
+Each Plan Effect and each Override owns its own patrol direction, traversal
+phase, jump clock, and path clock. A new patrol owner starts toward the right. A
+new traversal owner begins from the nearest safe corner. A temporary interrupt
+therefore cannot change the underlying owner's phase. Releasing an owner
+discards its internal motion state, and instance reset clears every Plan motion
+state. Viewport changes recalculate the current target before the next movement
+step. If character size and offsets leave no travel, targets collapse without
+producing an out-of-bounds request.
+
 Compatible Effects form one composed output. Content does not race through a
 separate scheduler, and a named surface conflict without declared policy is a
 compile-time Configuration error.
+
+Character frame presentation is renderer-neutral above an internal seam. The
+default DOM atlas renderer and optional Canvas 2D renderer receive the same
+resolved State, clock, position, density, and lift. They do not own Pack
+loading, Plan evaluation, motion, interaction, target geometry, or lifecycle.
+Content surfaces stay in DOM for native controls and accessibility under both
+renderer choices.
+
+## Direct character interaction
+
+Direct interaction is an instance input layer, not a Pack capability and not a
+second Plan. The runtime owns one accessible character button above either
+visual renderer. Pointer capture, click separation, keyboard activation, badge
+presentation, and cleanup belong to that instance.
+
+A pointer down begins direct ownership. Drag updates the character center from
+the original grab offset. Plan motion stays evaluated but cannot change position
+while drag or throw owns it. Pointer release either settles, enters time-based
+throw integration, or catches a declared target. Landing and catching release
+direct ownership to the unchanged Plan.
+
+Release velocity is expressed in CSS pixels per second. Gravity integrates over
+the bounded frame step. Side and top collisions retain the configured bounce
+fraction. Floor collision always settles. A catch reads only the approved target
+rectangle and can enqueue one configured application Event through normal Event
+admission.
+
+Character press is independent from drag. A drag beyond the movement threshold
+suppresses its trailing click. A press can show, hide, or toggle owned content,
+emit one bounded application Event, or do nothing. Notification indicators
+change the accessible name and owned badge only. They do not enter the Event
+queue or mutate the Plan.
+
+Host controls can call `setContentVisible(visible)` or `toggleContent()` on the
+instance. These presentation operations use the same owned content renderer and
+do not affect channel ownership, Event admission, or Plan evaluation.
+
+Reduced-motion mode retains direct dragging and keyboard press. It suppresses
+autonomous Plan motion and release momentum, then settles the character at the
+safe floor position.
 
 ## Overrides
 
@@ -500,7 +577,7 @@ the documented reason, and preserves host-page interaction.
 
 ## Strict CSP and host policy
 
-Strict Content Security Policy compatibility is a `0.1.0` release gate. Peekling
+Strict Content Security Policy compatibility is a `0.1.1` release gate. Peekling
 must not require `unsafe-inline` or `unsafe-eval`. It does not inject raw HTML
 or inline event attributes.
 

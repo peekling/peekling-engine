@@ -1,6 +1,6 @@
 {
   "name": "@peekling/preflight",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Pure development-time validation for Peekling configuration and Packs",
   "license": "Apache-2.0",
   "author": {
@@ -46,7 +46,7 @@
   },
   "dependencies": {},
   "peerDependencies": {
-    "@peekling/runtime": "0.1.0"
+    "@peekling/runtime": "0.1.1"
   },
   "scripts": {
     "build": "tsc -b",
@@ -55,7 +55,7 @@
     "typecheck": "tsc -b --pretty false"
   },
   "devDependencies": {
-    "@peekling/runtime": "0.1.0",
+    "@peekling/runtime": "0.1.1",
     "typescript": "^7.0.2"
   }
 }

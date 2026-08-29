@@ -161,6 +161,8 @@ test("runtime pack contains only the intended runtime and declaration graph", ()
   )[0];
   const files = result.files.map(({ path: file }) => file).sort();
   const runtimeModules = [
+    "canvas-renderer",
+    "canvas",
     "configuration-validation",
     "content",
     "contracts",
@@ -171,6 +173,7 @@ test("runtime pack contains only the intended runtime and declaration graph", ()
     "events",
     "index",
     "input",
+    "interaction",
     "json",
     "loader",
     "locomotion",
@@ -180,6 +183,7 @@ test("runtime pack contains only the intended runtime and declaration graph", ()
     "pack-api",
     "pack-shared",
     "pack",
+    "path-sampler",
     "plan-compiler",
     "plan",
     "preflight-api",
@@ -192,6 +196,7 @@ test("runtime pack contains only the intended runtime and declaration graph", ()
     "runtime",
     "sections",
     "styles",
+    "targets",
     "tooling-preflight",
     "tooling-validation",
     "types",

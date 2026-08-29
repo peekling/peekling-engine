@@ -33,6 +33,7 @@ export function validateRuntimeConfiguration(
     try {
       compilePlan(options.plan, {
         contentIds: new Set(Object.keys(content)),
+        targets: new Set(Object.keys(options.targets ?? {})),
       });
     } catch (cause) {
       fail(
@@ -127,6 +128,40 @@ function configurationMessage(
       return `${detail ?? field} must be a function`;
     case "invalid-plan":
       return detail ?? "Plan is invalid";
+    case "incompatible-behavior":
+      return "Choose preset or plan, not both";
+    case "invalid-preset":
+      return "preset must be companion, still, bottom-patrol, or viewport-roam";
+    case "invalid-targets":
+      return "targets must be an object of target IDs and CSS selectors";
+    case "target-limit":
+      return "targets supports at most 16 entries";
+    case "invalid-target":
+      return "target IDs must be bounded lowercase IDs";
+    case "invalid-target-selector":
+      return "target selectors must be bounded CSS selector text";
+    case "invalid-interaction":
+      return "interaction contains an unsupported value";
+    case "invalid-interaction-event":
+      return "interaction events must be bounded application Event names";
+    case "missing-interaction-event":
+      return "pressEvent is required when press is emit";
+    case "incompatible-interaction-event":
+      return "pressEvent can be used only with the emit press action";
+    case "invalid-interaction-state":
+      return "interaction states must be valid Pack State names";
+    case "invalid-interaction-range":
+      return "interaction physics value is outside its supported range";
+    case "invalid-interaction-label":
+      return "interaction label must be short plain text";
+    case "invalid-catch-target":
+      return "catchTarget must reference a configured target";
+    case "invalid-catch-anchor":
+      return "catchAnchor is not supported";
+    case "invalid-indicator":
+      return "indicator must include a label and valid dot or count settings";
+    case "incompatible-indicator":
+      return "indicator requires character interaction";
     default:
       return detail ?? code;
   }

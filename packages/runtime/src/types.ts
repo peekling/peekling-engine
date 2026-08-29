@@ -149,6 +149,8 @@ export type PlanCapability = "locomotion";
 export type PlanChannel = "motion" | "state" | `surface:${string}`;
 
 export type PlanEventCoalescing = "latest";
+export type PeeklingPreset =
+  "companion" | "still" | "bottom-patrol" | "viewport-roam";
 
 export type PlanInterruptLifetime =
   | { type: "duration"; ms: number }
@@ -207,11 +209,68 @@ export type PlanCondition = PlanDiscreteCondition | PlanContinuousCondition;
 export type PlanStateSelection =
   { state: string } | { capability: PlanCapability };
 
-export interface PlanMotionEffect {
+export interface FollowPointerMotionEffect {
   type: "follow-pointer";
   speed?: number;
   arrivalRadius?: number;
 }
+
+export interface HorizontalPatrolMotionEffect {
+  type: "horizontal-patrol";
+  speed?: number;
+  edgeInset?: number;
+}
+
+export interface ViewportTraverseMotionEffect {
+  type: "viewport-traverse";
+  speed?: number;
+  edgeInset?: number;
+  clockwise?: boolean;
+}
+
+export interface MoveToMotionEffect {
+  type: "move-to";
+  x: number;
+  y: number;
+  speed?: number;
+  arrivalRadius?: number;
+}
+
+export type TargetAnchor = "center" | "top" | "right" | "bottom" | "left";
+
+export interface MoveToTargetMotionEffect {
+  type: "move-to-target";
+  target: string;
+  anchor?: TargetAnchor;
+  speed?: number;
+  arrivalRadius?: number;
+}
+
+export interface JumpToMotionEffect {
+  type: "jump-to";
+  x: number;
+  y: number;
+  duration?: number;
+  height?: number;
+}
+
+export interface SvgPathMotionEffect {
+  type: "svg-path";
+  /** SVG path data sampled by the browser. It is data and is never evaluated. */
+  path: string;
+  duration?: number;
+  loop?: boolean;
+  relative?: boolean;
+}
+
+export type PlanMotionEffect =
+  | FollowPointerMotionEffect
+  | HorizontalPatrolMotionEffect
+  | ViewportTraverseMotionEffect
+  | MoveToMotionEffect
+  | MoveToTargetMotionEffect
+  | JumpToMotionEffect
+  | SvgPathMotionEffect;
 
 export interface PlanSurfaceOrdering {
   sessionField: string;
@@ -448,11 +507,23 @@ export interface World {
   pointer?: Point;
   position: Point;
   viewport: { width: number; height: number };
+  characterSize?: { width: number; height: number };
   lastActivityAt: number;
   reaction?: ReactionEvent;
   reducedMotion: boolean;
   pageVisible?: boolean;
   sections?: Readonly<Record<string, SectionSnapshot>>;
+  targets?: Readonly<Record<string, TargetSnapshot>>;
+  samplePath?: (path: string, progress: number) => Point | undefined;
+}
+
+export interface TargetSnapshot {
+  left: number;
+  top: number;
+  right: number;
+  bottom: number;
+  width: number;
+  height: number;
 }
 
 export interface MotionRequest {
@@ -460,6 +531,9 @@ export interface MotionRequest {
   y: number;
   speed: number;
   maxDistance?: number;
+  lift?: number;
+  direct?: boolean;
+  trackTarget?: boolean;
 }
 
 export interface BehaviorRequest {

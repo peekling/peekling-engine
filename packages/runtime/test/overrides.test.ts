@@ -69,6 +69,68 @@ test("follow-pointer uses the same default speed in Plans and Overrides", () => 
   );
 });
 
+test("horizontal patrol Overrides ignore the pointer and use character-safe targets", () => {
+  const manager = new OverrideManager(context, () => 0);
+  manager.add({
+    effect: {
+      channels: ["motion"],
+      motion: {
+        type: "horizontal-patrol",
+        speed: 240,
+        edgeInset: 20,
+      },
+    },
+    until: { type: "manual" },
+  });
+
+  assert.deepEqual(
+    manager.compose(
+      {},
+      {
+        pointer: { x: 40, y: 40 },
+        position: { x: 40, y: 40 },
+        viewport: { width: 380, height: 450 },
+        characterSize: { width: 40, height: 20 },
+      },
+    ).motion,
+    { x: 0.6, y: 0.8, speed: 240, maxDistance: 500 },
+  );
+});
+
+test("each horizontal patrol Override starts right and releases its direction state", async () => {
+  const manager = new OverrideManager(context, () => 0);
+  const first = manager.add({
+    effect: {
+      channels: ["motion"],
+      motion: { type: "horizontal-patrol", edgeInset: 10 },
+    },
+    until: { type: "manual" },
+  });
+  const world = {
+    position: { x: 350, y: 190 },
+    viewport: { width: 380, height: 200 },
+    characterSize: { width: 40, height: 20 },
+  };
+
+  assert.equal(manager.compose({}, world).motion?.x, -1);
+  first.cancel();
+  assert.equal((await first.finished).reason, "cancelled");
+
+  const second = manager.add({
+    effect: {
+      channels: ["motion"],
+      motion: { type: "horizontal-patrol", edgeInset: 10 },
+    },
+    until: { type: "manual" },
+  });
+  assert.equal(
+    manager.compose({}, { ...world, position: { x: 190, y: 190 } }).motion?.x,
+    1,
+  );
+  manager.clear("destroyed");
+  assert.equal((await second.finished).reason, "destroyed");
+});
+
 test("a completion event ends an override without consuming the Plan event", async () => {
   const manager = new OverrideManager(context, () => 10);
   const handle = manager.add({

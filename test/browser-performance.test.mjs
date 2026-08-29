@@ -370,9 +370,9 @@ test("release acceptance ignores tampered report sample claims", () => {
   const failures = evaluatePerformanceReport({
     schemaVersion: 1,
     contract: "peekling-browser-performance-v0.1",
-    profile: "release-0.1.0",
+    profile: "release-0.1.1",
     context: {
-      purpose: "0.1.0 release acceptance",
+      purpose: "0.1.1 release acceptance",
       startupRepetitions: 5,
       warmupCount: 1,
       steadyFrameCount: 30,
@@ -513,7 +513,7 @@ test("finalization keeps every raw sample and records unsupported long-task data
   const report = finalizePerformanceReport(context, browserMatrix());
   assert.equal(report.schemaVersion, 1);
   assert.equal(report.contract, "peekling-browser-performance-v0.1");
-  assert.equal(report.profile, "release-0.1.0");
+  assert.equal(report.profile, "release-0.1.1");
   assert.equal(report.gate.passed, true);
   assert.equal(report.gate.releaseAcceptance, true);
   assert.equal(

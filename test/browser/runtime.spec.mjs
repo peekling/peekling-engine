@@ -1269,7 +1269,7 @@ test("explicit Peek selection rejects manifest bytes that differ from the embedd
   page,
 }) => {
   const canonical =
-    "https://cdn.jsdelivr.net/npm/@peekling/pack-peek@0.1.0/character.json";
+    "https://cdn.jsdelivr.net/npm/@peekling/pack-peek@0.1.1/character.json";
   let atlasRequests = 0;
   await page.route(canonical, (route) =>
     route.fulfill({
@@ -1326,7 +1326,7 @@ test("explicit Peek selection loads the pinned starter package", async ({
   const manifestBytes = await readFile(path.join(peekRoot, "character.json"));
   const manifest = JSON.parse(manifestBytes.toString("utf8"));
   const canonical =
-    "https://cdn.jsdelivr.net/npm/@peekling/pack-peek@0.1.0/character.json";
+    "https://cdn.jsdelivr.net/npm/@peekling/pack-peek@0.1.1/character.json";
   await page.route(canonical, (route) =>
     route.fulfill({
       body: manifestBytes,
@@ -1373,7 +1373,7 @@ test("DPR2 explicit Peek selection loads its matching immutable atlas", async ({
   const manifestBytes = await readFile(path.join(peekRoot, "character.json"));
   const manifest = JSON.parse(manifestBytes.toString("utf8"));
   const canonical =
-    "https://cdn.jsdelivr.net/npm/@peekling/pack-peek@0.1.0/character.json";
+    "https://cdn.jsdelivr.net/npm/@peekling/pack-peek@0.1.1/character.json";
   const context = await browser.newContext({
     viewport: { width: 800, height: 600 },
     deviceScaleFactor: 2,
@@ -1412,7 +1412,7 @@ test("DPR2 explicit Peek selection loads its matching immutable atlas", async ({
     instance.destroy();
   });
   expect(requested).toEqual([
-    "https://cdn.jsdelivr.net/npm/@peekling/pack-peek@0.1.0/atlas-2x.png",
+    "https://cdn.jsdelivr.net/npm/@peekling/pack-peek@0.1.1/atlas-2x.png",
   ]);
   await context.close();
 });
@@ -1768,6 +1768,59 @@ test("engine-default Plan runs when an explicit Pack omits plan", async ({
   await expect
     .poll(() => host.getAttribute("data-peekling-x"))
     .not.toBe(before);
+});
+
+test("window scroll stops pointer motion until the next pointer observation", async ({
+  page,
+}) => {
+  await mount(page, {
+    baseline: {
+      channels: ["state"],
+      state: { state: "idle" },
+    },
+    rules: [
+      {
+        id: "follow-pointer",
+        when: { source: "browser", event: "pointer.move" },
+        effect: {
+          channels: ["motion", "state"],
+          motion: { type: "follow-pointer" },
+          state: { capability: "locomotion" },
+        },
+      },
+      {
+        id: "window-scroll",
+        when: {
+          source: "browser",
+          event: "window.scroll",
+          coalesce: "latest",
+        },
+        effect: {
+          channels: ["state"],
+          state: { state: "happy" },
+          until: { type: "duration", ms: 600 },
+        },
+      },
+    ],
+  });
+  const host = page.locator("[data-peekling-host]");
+  const initial = await host.getAttribute("data-peekling-x");
+
+  await page.mouse.move(10, 10);
+  await expect
+    .poll(() => host.getAttribute("data-peekling-x"))
+    .not.toBe(initial);
+
+  await page.evaluate(() => dispatchEvent(new Event("scroll")));
+  await expect(host).toHaveAttribute("data-peekling-state", "happy");
+  const stopped = await host.getAttribute("data-peekling-x");
+  await page.waitForTimeout(180);
+  await expect(host).toHaveAttribute("data-peekling-x", stopped);
+
+  await page.mouse.move(1_200, 700);
+  await expect
+    .poll(() => host.getAttribute("data-peekling-x"))
+    .not.toBe(stopped);
 });
 
 test("renderer keeps DPR snapping, lift, and a positive scale transform aligned", async ({

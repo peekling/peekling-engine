@@ -146,6 +146,25 @@ test("the authoritative options schema is valid JSON with closed objects", async
   assert.equal(validate({ format: 2 }), false);
   assert.equal(validate({ position: "100,200" }), false);
 
+  const validateMotion = ajv.getSchema(`${schema.$id}#/$defs/planMotionEffect`);
+  assert.ok(validateMotion);
+  assert.equal(
+    validateMotion({
+      type: "horizontal-patrol",
+      speed: 240,
+      edgeInset: 24,
+    }),
+    true,
+  );
+  assert.equal(
+    validateMotion({ type: "horizontal-patrol", arrivalRadius: 10 }),
+    false,
+  );
+  assert.equal(
+    validateMotion({ type: "follow-pointer", bottomOffset: 10 }),
+    false,
+  );
+
   const validateSection = ajv.getSchema(
     `${schema.$id}#/$defs/sectionCondition`,
   );
@@ -423,7 +442,7 @@ test("schema and both Preflight entry points reject null options", async () => {
   );
 });
 
-test("theme colors use one closed grammar across schema and validation", async () => {
+test("theme and indicator colors use one closed grammar across schema and validation", async () => {
   const schema = JSON.parse(await readFile(path, "utf8"));
   const validate = new Ajv2020({
     allErrors: true,
@@ -439,6 +458,10 @@ test("theme colors use one closed grammar across schema and validation", async (
       color: value,
       linkColor: value,
       borderColor: value,
+    },
+    indicator: {
+      label: "One update is waiting",
+      color: value,
     },
   });
 
@@ -592,7 +615,8 @@ function assertTypeShapesMatchSchema(types, schema) {
     ["PlanRuleFields", schema.$defs.planRule],
     ["PlanEffect", schema.$defs.planEffect],
     ["PlanContinuousEffect", schema.$defs.planContinuousEffect],
-    ["PlanMotionEffect", schema.$defs.planMotionEffect],
+    ["FollowPointerMotionEffect", schema.$defs.followPointerMotionEffect],
+    ["HorizontalPatrolMotionEffect", schema.$defs.horizontalPatrolMotionEffect],
     ["PlanSurfaceEffect", schema.$defs.planSurfaceEffect],
     ["PlanSurfaceOrdering", schema.$defs.planSurfaceOrdering],
     ["ContentSurfaceFields", schema.$defs.contentSurface],

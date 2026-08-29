@@ -43,6 +43,14 @@ export interface SerializablePeeklingOptionFields {
   name?: boolean | PlainText80;
   /** Host-owned declarative behavior and content-selection plan. JSON-safe. */
   plan?: Plan;
+  /** Named starting behavior compiled into the same canonical Plan. Mutually exclusive with plan. */
+  preset?: PeeklingPreset;
+  /** Host-approved target IDs mapped to bounded CSS selectors, at most 16 entries. */
+  targets?: TargetRegistry;
+  /** Character press, drag, throw, landing, and target-catch behavior. Enabled by default. */
+  interaction?: false | CharacterInteractionOptions;
+  /** Optional notification badge on the accessible character control. */
+  indicator?: CharacterIndicator;
   /** Host-owned generic anchored content registry, at most 32 entries. JSON-safe registry references only. */
   content?: ContentRegistry;
   /** Bounded engine-owned surface theme tokens. JSON-safe. */
@@ -88,6 +96,8 @@ export interface Point {
 }
 
 export type PlanCapability = "locomotion";
+export type PeeklingPreset =
+  "companion" | "still" | "bottom-patrol" | "viewport-roam";
 export type PlanEventSource = "browser" | "application";
 export type PlanBrowserEvent =
   | "pointer.click"
@@ -159,10 +169,123 @@ export type PlanCondition = PlanDiscreteCondition | PlanContinuousCondition;
 export type PlanStateSelection =
   { state: StateName } | { capability: PlanCapability };
 
-export interface PlanMotionEffect {
+export interface FollowPointerMotionEffect {
   type: "follow-pointer";
   speed?: number;
   arrivalRadius?: number;
+}
+
+export interface HorizontalPatrolMotionEffect {
+  type: "horizontal-patrol";
+  speed?: number;
+  edgeInset?: number;
+}
+
+export interface ViewportTraverseMotionEffect {
+  type: "viewport-traverse";
+  speed?: number;
+  edgeInset?: number;
+  clockwise?: boolean;
+}
+
+export interface MoveToMotionEffect {
+  type: "move-to";
+  /** CSS pixels, -100,000 through 100,000. */
+  x: number;
+  /** CSS pixels, -100,000 through 100,000. */
+  y: number;
+  speed?: number;
+  arrivalRadius?: number;
+}
+
+export type TargetAnchor = "center" | "top" | "right" | "bottom" | "left";
+
+export interface MoveToTargetMotionEffect {
+  type: "move-to-target";
+  target: Name;
+  anchor?: TargetAnchor;
+  speed?: number;
+  arrivalRadius?: number;
+}
+
+export interface JumpToMotionEffect {
+  type: "jump-to";
+  /** CSS pixels, -100,000 through 100,000. */
+  x: number;
+  /** CSS pixels, -100,000 through 100,000. */
+  y: number;
+  /** 100 through 10,000 milliseconds. */
+  duration?: number;
+  /** Arc height in CSS pixels, 0 through 2,000. */
+  height?: number;
+}
+
+export interface SvgPathMotionEffect {
+  type: "svg-path";
+  /** SVG path data, 1 through 4,096 characters. It is sampled as data and never evaluated. */
+  path: string;
+  /** 100 through 60,000 milliseconds. */
+  duration?: number;
+  loop?: boolean;
+  /** Default true. Relative paths begin at the character's current position. */
+  relative?: boolean;
+}
+
+export type PlanMotionEffect =
+  | FollowPointerMotionEffect
+  | HorizontalPatrolMotionEffect
+  | ViewportTraverseMotionEffect
+  | MoveToMotionEffect
+  | MoveToTargetMotionEffect
+  | JumpToMotionEffect
+  | SvgPathMotionEffect;
+
+export type TargetRegistry = Record<Name, string>;
+
+export type CharacterPressAction =
+  "toggle-content" | "show-content" | "hide-content" | "emit" | "none";
+
+export interface CharacterInteractionOptions {
+  /** Defaults to toggle-content, or emit when pressEvent is present. */
+  press?: CharacterPressAction;
+  /** Application Event emitted when press resolves to emit. */
+  pressEvent?: string;
+  /** Default true. */
+  drag?: boolean;
+  /** Default true. */
+  throw?: boolean;
+  dragState?: StateName;
+  riseState?: StateName;
+  fallState?: StateName;
+  landState?: StateName;
+  /** CSS pixels per second squared, 0 through 10,000. */
+  gravity?: number;
+  /** CSS pixels per second, 0 through 10,000. */
+  maxThrowSpeed?: number;
+  /** Collision energy retained, 0 through 1. */
+  bounce?: number;
+  /** Floor inset in CSS pixels, 0 through 1,000. */
+  floorInset?: number;
+  label?: PlainText120;
+  contentInitiallyHidden?: boolean;
+  clearIndicatorOnPress?: boolean;
+  catchTarget?: Name;
+  catchAnchor?: TargetAnchor;
+  /** Catch margin in CSS pixels, 0 through 1,000. */
+  catchMargin?: number;
+  catchEvent?: string;
+}
+
+export interface CharacterIndicator {
+  /** Default dot. */
+  kind?: "dot" | "count";
+  /** Integer 0 through 999. The rendered badge caps visible text at 99. */
+  count?: number;
+  label: PlainText120;
+  /** Optional badge color using the closed Peekling color grammar. */
+  color?: ColorToken;
+  /** Default true. */
+  visible?: boolean;
 }
 
 export interface PlanSurfaceOrdering {
@@ -273,12 +396,14 @@ export interface ContentLink {
   href: string;
 }
 
+export type ColorToken = "transparent" | `#${string}`;
+
 export interface SurfaceTheme {
   /** Lowercase `transparent` or a 3, 4, 6, or 8 digit hex color. */
-  background?: "transparent" | `#${string}`;
-  color?: "transparent" | `#${string}`;
-  linkColor?: "transparent" | `#${string}`;
-  borderColor?: "transparent" | `#${string}`;
+  background?: ColorToken;
+  color?: ColorToken;
+  linkColor?: ColorToken;
+  borderColor?: ColorToken;
   /** CSS pixels, 0 through 64. Default `14`. */
   radius?: number;
   /** CSS pixels, 120 through 640. Default `320`. */

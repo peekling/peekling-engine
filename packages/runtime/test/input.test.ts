@@ -32,6 +32,7 @@ test("only declared browser Events are observed and normalized", () => {
   assert.deepEqual(input.pointer, { x: 40, y: 80 });
   documentTarget.dispatchEvent(pointerEvent("click", "mouse", 40, 80));
   windowTarget.dispatchEvent(new Event("scroll"));
+  assert.equal(input.pointer, undefined);
   assert.deepEqual(
     input.reactions.map(({ source, name }) => ({ source, name })),
     [
@@ -45,6 +46,31 @@ test("only declared browser Events are observed and normalized", () => {
   const count = input.reactions.length;
   documentTarget.dispatchEvent(pointerEvent("click", "mouse"));
   assert.equal(input.reactions.length, count);
+});
+
+test("window scroll releases pointer motion until the next pointer observation", () => {
+  const documentTarget = new EventTarget();
+  const windowTarget = new EventTarget();
+  const input = new InputCollector(
+    documentTarget as unknown as Document,
+    windowTarget as unknown as Window,
+    {
+      events: new Set(["pointer.move", "window.scroll"]),
+      now: () => 15,
+      wake: () => {},
+    },
+  );
+
+  documentTarget.dispatchEvent(pointerEvent("pointermove", "mouse", 80, 120));
+  assert.deepEqual(input.pointer, { x: 80, y: 120 });
+
+  windowTarget.dispatchEvent(new Event("scroll"));
+  assert.equal(input.pointer, undefined);
+  assert.equal(input.reaction?.name, "window.scroll");
+
+  documentTarget.dispatchEvent(pointerEvent("pointermove", "mouse", 160, 240));
+  assert.deepEqual(input.pointer, { x: 160, y: 240 });
+  input.destroy();
 });
 
 for (const pointerType of ["touch", "pen"]) {

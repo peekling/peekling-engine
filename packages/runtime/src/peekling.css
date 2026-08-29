@@ -28,6 +28,71 @@
   font: 500 14px/1.4 system-ui !important;
 }
 
+:host([data-peekling-content][hidden]) {
+  display: none !important;
+}
+
+:host([data-peekling-interaction]) {
+  z-index: 2147483647 !important;
+  contain: strict !important;
+  overflow: hidden !important;
+}
+
+:host([data-peekling-interaction][hidden]) {
+  display: none !important;
+}
+
+.peekling-character-hit {
+  position: absolute;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 28%;
+  background: transparent;
+  color: #262626;
+  pointer-events: auto;
+  cursor: pointer;
+  transform-origin: 0 0;
+}
+
+.peekling-character-hit[data-peekling-draggable] {
+  cursor: grab;
+  touch-action: none;
+}
+
+.peekling-character-hit[data-peekling-draggable]:active {
+  cursor: grabbing;
+}
+
+.peekling-character-hit:focus-visible {
+  outline: 3px solid #2f6f1d;
+  outline-offset: 3px;
+}
+
+.peekling-character-indicator {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  display: grid;
+  box-sizing: border-box;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  place-items: center;
+  border: 2px solid #fafafa;
+  border-radius: 999px;
+  background: #ff4d4f;
+  color: #fff;
+  font: 700 10px/1 system-ui;
+}
+
+.peekling-character-indicator[data-kind="dot"] {
+  min-width: 12px;
+  width: 12px;
+  height: 12px;
+  padding: 0;
+}
+
 .surface {
   position: absolute;
   box-sizing: border-box;
@@ -39,6 +104,10 @@
   border-radius: var(--peekling-surface-radius, 14px);
   background: var(--peekling-surface-background, #fafafa);
   pointer-events: auto;
+}
+
+.surface [hidden] {
+  display: none !important;
 }
 
 .title {

@@ -25,6 +25,7 @@ function world(overrides: Partial<World> = {}): World {
     now: 0,
     position: { x: 0, y: 0 },
     viewport: { width: 800, height: 600 },
+    characterSize: { width: 64, height: 64 },
     lastActivityAt: 0,
     reducedMotion: false,
     ...overrides,
@@ -42,7 +43,7 @@ test("the engine default is one canonical Plan with an idle baseline", () => {
 
   const locomoting = compilePlan(createDefaultPlan(true), context);
   const frame = new PlanRuntime(locomoting).evaluate(
-    world({ pointer: { x: 100, y: 0 } }),
+    world({ position: { x: 32, y: 32 }, pointer: { x: 132, y: 32 } }),
   );
   assert.equal(frame.capability, "locomotion");
   assert.deepEqual(frame.motion, {
@@ -77,10 +78,321 @@ test("a minimal pointer Rule drives motion through the compiled Plan", () => {
   };
   const runtime = new PlanRuntime(compilePlan(plan, context));
 
-  assert.deepEqual(runtime.evaluate(world({ pointer: { x: 25, y: 0 } })), {
-    capability: "locomotion",
-    motion: { x: 1, y: 0, speed: 80, maxDistance: 15 },
+  assert.deepEqual(
+    runtime.evaluate(
+      world({ position: { x: 32, y: 32 }, pointer: { x: 57, y: 32 } }),
+    ),
+    {
+      capability: "locomotion",
+      motion: { x: 1, y: 0, speed: 80, maxDistance: 15 },
+    },
+  );
+});
+
+test("horizontal patrol ignores the pointer and targets character-safe bottom edges", () => {
+  const runtime = new PlanRuntime(
+    compilePlan(
+      {
+        baseline: {
+          channels: ["motion", "state"],
+          motion: {
+            type: "horizontal-patrol",
+            speed: 240,
+            edgeInset: 20,
+          },
+          state: { capability: "locomotion" },
+        },
+      },
+      context,
+    ),
+  );
+
+  assert.deepEqual(
+    runtime.evaluate(
+      world({
+        pointer: { x: 40, y: 40 },
+        position: { x: 40, y: 40 },
+        viewport: { width: 380, height: 450 },
+        characterSize: { width: 40, height: 20 },
+      }),
+    ),
+    {
+      capability: "locomotion",
+      motion: { x: 0.6, y: 0.8, speed: 240, maxDistance: 500 },
+    },
+  );
+});
+
+test("horizontal patrol reverses at each bounded edge", () => {
+  const runtime = new PlanRuntime(
+    compilePlan(
+      {
+        baseline: {
+          channels: ["motion", "state"],
+          motion: {
+            type: "horizontal-patrol",
+            speed: 100,
+            edgeInset: 10,
+          },
+          state: { capability: "locomotion" },
+        },
+      },
+      context,
+    ),
+  );
+  const bounds = {
+    viewport: { width: 380, height: 450 },
+    characterSize: { width: 40, height: 20 },
+  };
+
+  assert.deepEqual(
+    runtime.evaluate(world({ ...bounds, position: { x: 350, y: 440 } })).motion,
+    { x: -1, y: 0, speed: 100, maxDistance: 320 },
+  );
+  assert.deepEqual(
+    runtime.evaluate(world({ ...bounds, position: { x: 30, y: 440 } })).motion,
+    { x: 1, y: 0, speed: 100, maxDistance: 320 },
+  );
+});
+
+test("horizontal patrol direction is isolated per Plan owner and cleared by reset", () => {
+  const runtime = new PlanRuntime(
+    compilePlan(
+      {
+        baseline: {
+          channels: ["motion", "state"],
+          motion: { type: "horizontal-patrol", edgeInset: 10 },
+          state: { capability: "locomotion" },
+        },
+        rules: [
+          {
+            id: "temporary-patrol",
+            when: { source: "application", event: "patrol.temporary" },
+            effect: {
+              channels: ["motion"],
+              motion: { type: "horizontal-patrol", edgeInset: 10 },
+              until: { type: "duration", ms: 100 },
+            },
+          },
+        ],
+      },
+      context,
+    ),
+  );
+  const bounds = {
+    viewport: { width: 380, height: 200 },
+    characterSize: { width: 40, height: 20 },
+  };
+
+  assert.equal(
+    runtime.evaluate(world({ ...bounds, position: { x: 350, y: 190 } })).motion
+      ?.x,
+    -1,
+  );
+  assert.equal(
+    runtime.evaluate(
+      world({
+        ...bounds,
+        now: 10,
+        position: { x: 190, y: 190 },
+        reaction: {
+          id: 1,
+          source: "application",
+          name: "patrol.temporary",
+          at: 10,
+        },
+      }),
+    ).motion?.x,
+    1,
+  );
+  assert.equal(
+    runtime.evaluate(
+      world({ ...bounds, now: 111, position: { x: 190, y: 190 } }),
+    ).motion?.x,
+    -1,
+  );
+
+  runtime.reset();
+  assert.equal(
+    runtime.evaluate(
+      world({ ...bounds, now: 112, position: { x: 190, y: 190 } }),
+    ).motion?.x,
+    1,
+  );
+});
+
+test("viewport traversal walks every character-safe viewport edge", () => {
+  const runtime = new PlanRuntime(
+    compilePlan(
+      {
+        baseline: {
+          channels: ["motion", "state"],
+          motion: {
+            type: "viewport-traverse",
+            speed: 180,
+            edgeInset: 8,
+          },
+          state: { capability: "locomotion" },
+        },
+      },
+      context,
+    ),
+  );
+  const bounds = {
+    viewport: { width: 400, height: 300 },
+    characterSize: { width: 40, height: 40 },
+  };
+
+  assert.deepEqual(
+    runtime.evaluate(world({ ...bounds, position: { x: 28, y: 272 } })).motion,
+    { x: 1, y: 0, speed: 180, maxDistance: 344 },
+  );
+  assert.deepEqual(
+    runtime.evaluate(world({ ...bounds, position: { x: 372, y: 272 } })).motion,
+    { x: 0, y: -1, speed: 180, maxDistance: 244 },
+  );
+  assert.deepEqual(
+    runtime.evaluate(world({ ...bounds, position: { x: 372, y: 28 } })).motion,
+    { x: -1, y: 0, speed: 180, maxDistance: 344 },
+  );
+  assert.deepEqual(
+    runtime.evaluate(world({ ...bounds, position: { x: 28, y: 28 } })).motion,
+    { x: 0, y: 1, speed: 180, maxDistance: 244 },
+  );
+});
+
+test("move-to-target follows approved geometry and preserves target tracking", () => {
+  const runtime = new PlanRuntime(
+    compilePlan(
+      {
+        baseline: {
+          channels: ["motion", "state"],
+          motion: {
+            type: "move-to-target",
+            target: "sunlit-nook",
+            anchor: "top",
+            speed: 200,
+            arrivalRadius: 6,
+          },
+          state: { capability: "locomotion" },
+        },
+      },
+      { ...context, targets: new Set(["sunlit-nook"]) },
+    ),
+  );
+  const frame = runtime.evaluate(
+    world({
+      position: { x: 100, y: 100 },
+      targets: {
+        "sunlit-nook": {
+          left: 100,
+          top: 200,
+          right: 300,
+          bottom: 260,
+          width: 200,
+          height: 60,
+        },
+      },
+    }),
+  );
+  const distance = Math.hypot(100, 68);
+
+  assert.equal(frame.motion?.trackTarget, true);
+  assert.equal(frame.motion?.speed, 200);
+  assert.equal(frame.motion?.x, 100 / distance);
+  assert.equal(frame.motion?.y, 68 / distance);
+  assert.equal(frame.motion?.maxDistance, distance - 6);
+});
+
+test("jump-to produces a time-based arc and settles at its destination", () => {
+  const runtime = new PlanRuntime(
+    compilePlan(
+      {
+        baseline: {
+          channels: ["motion", "state"],
+          motion: {
+            type: "jump-to",
+            x: 300,
+            y: 200,
+            duration: 1_000,
+            height: 100,
+          },
+          state: { capability: "locomotion" },
+        },
+      },
+      context,
+    ),
+  );
+
+  runtime.evaluate(world({ position: { x: 100, y: 200 }, now: 0 }));
+  assert.deepEqual(
+    runtime.evaluate(world({ position: { x: 100, y: 200 }, now: 500 })).motion,
+    {
+      x: 1,
+      y: 0,
+      speed: 0,
+      maxDistance: 100,
+      lift: 100,
+      direct: true,
+    },
+  );
+  assert.deepEqual(
+    runtime.evaluate(world({ position: { x: 200, y: 200 }, now: 1_000 }))
+      .motion,
+    {
+      x: 1,
+      y: 0,
+      speed: 0,
+      maxDistance: 100,
+      lift: 0,
+      direct: true,
+    },
+  );
+  assert.equal(
+    runtime.evaluate(world({ position: { x: 300, y: 200 }, now: 1_000 }))
+      .motion,
+    undefined,
+  );
+});
+
+test("relative SVG paths sample browser geometry and finish cleanly", () => {
+  const runtime = new PlanRuntime(
+    compilePlan(
+      {
+        baseline: {
+          channels: ["motion", "state"],
+          motion: {
+            type: "svg-path",
+            path: "M0 0 L100 50",
+            duration: 1_000,
+            relative: true,
+          },
+          state: { capability: "locomotion" },
+        },
+      },
+      { ...context, validatePath: () => true },
+    ),
+  );
+  const samplePath = (_path: string, progress: number) => ({
+    x: progress * 100,
+    y: progress * 50,
   });
+
+  runtime.evaluate(world({ position: { x: 200, y: 300 }, now: 0, samplePath }));
+  const halfway = runtime.evaluate(
+    world({ position: { x: 200, y: 300 }, now: 500, samplePath }),
+  ).motion;
+  assert.equal(halfway?.direct, true);
+  assert.equal(halfway?.maxDistance, Math.hypot(50, 25));
+  assert.equal(halfway?.x, 50 / Math.hypot(50, 25));
+  assert.equal(halfway?.y, 25 / Math.hypot(50, 25));
+
+  assert.equal(
+    runtime.evaluate(
+      world({ position: { x: 300, y: 350 }, now: 1_000, samplePath }),
+    ).motion,
+    undefined,
+  );
 });
 
 test("section observer thresholds are sorted numerically", () => {
@@ -688,7 +1000,8 @@ test("pointer motion composes with persistent progress surface data", () => {
 
   const progress = runtime.evaluate(
     world({
-      pointer: { x: 40, y: 0 },
+      position: { x: 32, y: 32 },
+      pointer: { x: 72, y: 32 },
       reaction: {
         id: 1,
         source: "application",
@@ -710,7 +1023,11 @@ test("pointer motion composes with persistent progress surface data", () => {
   );
 
   const movedAgain = runtime.evaluate(
-    world({ now: 32, pointer: { x: 0, y: 50 } }),
+    world({
+      now: 32,
+      position: { x: 32, y: 32 },
+      pointer: { x: 32, y: 82 },
+    }),
   );
   assert.equal(movedAgain.motion?.y, 1);
   assert.equal(movedAgain.surfaces?.[0]?.contentId, "job-progress");
@@ -855,7 +1172,7 @@ test("late terminal progress preserves disjoint status and state effects", () =>
   );
 });
 
-test("a motion owner arriving at its target does not delete another Rule's state channel", () => {
+test("follow-pointer completion clears a separately owned locomotion state", () => {
   const runtime = new PlanRuntime(
     compilePlan(
       {
@@ -899,6 +1216,7 @@ test("a motion owner arriving at its target does not delete another Rule's state
   const request = runtime.evaluate(
     world({
       now: 10,
+      position: { x: 32, y: 32 },
       pointer: { x: 5, y: 0 },
       reaction: {
         id: 2,
@@ -908,9 +1226,74 @@ test("a motion owner arriving at its target does not delete another Rule's state
       },
     }),
   );
-  assert.equal(request.capability, "locomotion");
+  assert.equal(request.capability, undefined);
   assert.equal(request.motion, undefined);
-  assert.equal(request.state, undefined);
+  assert.equal(request.state, "idle");
+
+  const retained = runtime.evaluate(world({ now: 20 }));
+  assert.equal(retained.capability, undefined);
+  assert.equal(retained.motion, undefined);
+  assert.equal(retained.state, "idle");
+});
+
+test("follow-pointer completion preserves a separately owned exact state", () => {
+  const runtime = new PlanRuntime(
+    compilePlan(
+      {
+        baseline: {
+          channels: ["state"],
+          state: { state: "idle" },
+        },
+        rules: [
+          {
+            id: "happy-state",
+            when: { source: "application", event: "mode.happy" },
+            effect: {
+              channels: ["state"],
+              state: { state: "happy" },
+            },
+          },
+          {
+            id: "move-on-click",
+            when: { source: "browser", event: "pointer.click" },
+            effect: {
+              channels: ["motion"],
+              motion: { type: "follow-pointer", arrivalRadius: 10 },
+            },
+          },
+        ],
+      },
+      context,
+    ),
+  );
+
+  runtime.evaluate(
+    world({
+      reaction: {
+        id: 1,
+        source: "application",
+        name: "mode.happy",
+        at: 0,
+      },
+    }),
+  );
+  const request = runtime.evaluate(
+    world({
+      now: 10,
+      position: { x: 32, y: 32 },
+      pointer: { x: 5, y: 0 },
+      reaction: {
+        id: 2,
+        source: "browser",
+        name: "pointer.click",
+        at: 10,
+      },
+    }),
+  );
+
+  assert.equal(request.capability, undefined);
+  assert.equal(request.motion, undefined);
+  assert.equal(request.state, "happy");
 });
 
 test("a Plan interrupt persists, releases on its Event, and still matches that Event", () => {

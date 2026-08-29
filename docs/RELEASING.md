@@ -14,7 +14,7 @@ Before preparing a release, confirm all of the following:
 - Configure the public GitHub origin. Package `repository`, `homepage`, and
   `bugs` values must be derived from that origin.
 - Confirm that CI passes for the exact commit that will receive the tag.
-- Use an immutable tag in the form `v<workspace-version>`, such as `v0.1.0`.
+- Use an immutable tag in the form `v<workspace-version>`, such as `v0.1.1`.
 - Keep the source repository public so npm can attach public provenance.
 - Confirm access to the `@peekling` npm scope and the protected `npm-production`
   GitHub environment.
@@ -26,7 +26,7 @@ Before preparing a release, confirm all of the following:
 | `npm run check:core`                     | Formatting, builds, linting, boundaries, workflow policy, metadata, distribution, types, tests, local size, and smoke performance |
 | `npm run release:verify:packages`        | Clean-source reconstruction, reproducible builds, package scans, archives, and isolated consumer checks                           |
 | `npm run release:verify:local`           | Full local release verification without requiring a tag or clean immutable source                                                 |
-| `npm run release:verify -- --tag v0.1.0` | Full release verification plus clean-source, origin, and exact-tag checks                                                         |
+| `npm run release:verify -- --tag v0.1.1` | Full release verification plus clean-source, origin, and exact-tag checks                                                         |
 | `npm run release:workflows`              | Static checks for the CI and publication workflow safety controls                                                                 |
 | `npm run size:release`                   | Canonical size evidence using the exact release toolchain                                                                         |
 
@@ -108,7 +108,7 @@ consumer directories are removed before the verifier returns.
 
 The browser gate writes raw evidence to `artifacts/browser-performance.json`.
 Release evidence must identify contract `peekling-browser-performance-v0.1`,
-profile `release-0.1.0`, and `releaseAcceptance: true`. Chromium, Firefox, and
+profile `release-0.1.1`, and `releaseAcceptance: true`. Chromium, Firefox, and
 WebKit must each provide exactly 40 cold and 40 warm samples. The threshold
 object must contain only the immutable 30 and 50 ms first-frame limits and the 2
 and 10 ms runtime-callback limits. Missing, extra, changed, nonnumeric, or
@@ -206,7 +206,7 @@ verification and complete the manual checks. Then run the immutable-source
 verification with the intended tag:
 
 ```sh
-npm run release:verify -- --tag v0.1.0
+npm run release:verify -- --tag v0.1.1
 ```
 
 A passing result requires a clean tracked commit, an exact tag on that commit, a

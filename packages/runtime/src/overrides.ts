@@ -1,12 +1,17 @@
 import { EVENT_NAME_PATTERN } from "./contracts.js";
 import { browserCompletionEvent, isContinuousBrowserEvent } from "./events.js";
-import { DEFAULT_PERSISTENT_REQUEST_LIMIT, DEFAULT_SPEED } from "./defaults.js";
+import { DEFAULT_PERSISTENT_REQUEST_LIMIT } from "./defaults.js";
 import {
   compileOverrideEffect,
   type CompiledPlanEffect,
   type PlanCompileContext,
 } from "./plan-compiler.js";
 import { snapshotOwnData } from "./own-data.js";
+import {
+  evaluateHorizontalPatrol,
+  motionToward,
+  type PatrolDirection,
+} from "./plan.js";
 import type {
   BehaviorRequest,
   OverrideCompletionReason,
@@ -31,6 +36,7 @@ interface ActiveOverride {
   startedAt: number;
   deadline: number;
   status: OverrideStatus;
+  patrolDirection: PatrolDirection;
   handle: OverrideHandle;
   finish(reason: OverrideCompletionReason): void;
 }
@@ -38,6 +44,8 @@ interface ActiveOverride {
 interface OverrideWorld {
   pointer?: { x: number; y: number };
   position?: { x: number; y: number };
+  viewport?: { width: number; height: number };
+  characterSize?: { width: number; height: number };
 }
 
 /** Instance-owned temporary channel controller. It never mutates the Plan. */
@@ -167,21 +175,30 @@ export class OverrideManager {
         delete output.state;
       }
       const motion = item.effect.motion;
-      if (motion && world.pointer && world.position) {
-        const dx = world.pointer.x - world.position.x;
-        const dy = world.pointer.y - world.position.y;
-        const distance = Math.hypot(dx, dy);
-        const arrivalRadius = motion.arrivalRadius ?? 0;
-        if (distance > arrivalRadius) {
-          output.motion = {
-            x: dx / distance,
-            y: dy / distance,
-            speed: motion.speed ?? DEFAULT_SPEED,
-            maxDistance: distance - arrivalRadius,
-          };
-        } else {
-          delete output.motion;
-        }
+      if (motion?.type === "horizontal-patrol") {
+        const [direction, request] = evaluateHorizontalPatrol(
+          motion,
+          world as Required<OverrideWorld>,
+          item.patrolDirection,
+        );
+        item.patrolDirection = direction;
+        if (request) output.motion = request;
+        else delete output.motion;
+      } else if (
+        motion?.type === "follow-pointer" &&
+        world.pointer &&
+        world.position
+      ) {
+        const request = motionToward(
+          motion,
+          world.position,
+          world.pointer.x,
+          world.pointer.y,
+          motion.arrivalRadius,
+          world,
+        );
+        if (request) output.motion = request;
+        else delete output.motion;
       }
       for (const surface of item.effect.surfaces) {
         surfaces.set(
@@ -255,6 +272,7 @@ export class OverrideManager {
       startedAt: 0,
       deadline: 0,
       status: "rejected" as const,
+      patrolDirection: true,
       handle,
       finish,
     });

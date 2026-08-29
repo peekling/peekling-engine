@@ -9,6 +9,7 @@ contract behind that first result.
 | Goal                                  | Read                                                      | What you will learn                                                                                 |
 | ------------------------------------- | --------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
 | Add Peekling to a page                | [Configure Peekling](configuration.md)                    | ESM, browser script, Web Component, Pack selection, Plans, Events, Overrides, and content surfaces. |
+| Add drag, throw, targets, or routes   | [Interaction and motion](interaction-and-motion.md)       | Default direct manipulation, target catching, motion types, SVG paths, and Canvas rendering.        |
 | Run working code locally              | [Runtime examples](../examples/README.md)                 | Four small integrations using the built runtime and a synthetic Pack.                               |
 | Understand the architecture           | [Engine design](../DESIGN.md)                             | Entry surfaces, trust boundaries, runtime pipeline, and package boundaries.                         |
 | Reason about ordering and cleanup     | [Execution model](execution-model.md)                     | Event admission, channel ownership, lifecycle, suspension, failure, and teardown.                   |
@@ -29,6 +30,7 @@ Get started
                  |
                  +--> DESIGN.md                       architecture and boundaries
                  +--> docs/execution-model.md         normative runtime ordering
+                 +--> docs/interaction-and-motion.md  direct manipulation and motion
                  +--> docs/compatibility-and-hosting.md browser and delivery policy
                  +--> docs/troubleshooting.md         symptom-to-action help
                  +--> docs/schema/                    machine-facing contracts

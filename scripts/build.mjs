@@ -12,6 +12,7 @@ import {
 const MANGLED_RUNTIME_PROPERTIES = Object.freeze([
   "atlasObjectUrl",
   "captureReaction",
+  "characterSize",
   "choose",
   "clear",
   "closedSessions",
@@ -38,6 +39,7 @@ const MANGLED_RUNTIME_PROPERTIES = Object.freeze([
   "objectUrl",
   "observeEvent",
   "pendingUpdate",
+  "patrolDirection",
   "positionStyle",
   "previousRatio",
   "ratio",

@@ -59,7 +59,7 @@ browser-file parsing. Cold and warm startup samples differ in atlas and
 stylesheet caching, not in browser-file loading.
 
 A release report has contract `peekling-browser-performance-v0.1`, profile
-`release-0.1.0`, and `releaseAcceptance: true`. Acceptance requires exactly one
+`release-0.1.1`, and `releaseAcceptance: true`. Acceptance requires exactly one
 Chromium, Firefox, and WebKit result, with exactly 40 cold and 40 warm startup
 samples from each browser. These requirements are immutable harness constants.
 The report's own context cannot lower them. Its `thresholds` object must contain
@@ -81,7 +81,7 @@ required 40.
 
 ## Release thresholds
 
-These are the existing `0.1.0` limits:
+These release limits remain in force for 0.1.1:
 
 | Measurement                                        | Gate                                                                                      |
 | -------------------------------------------------- | ----------------------------------------------------------------------------------------- |
@@ -95,9 +95,14 @@ These are the existing `0.1.0` limits:
 | Browser errors                                     | 0 page errors, unhandled rejections, and CSP violations                                   |
 
 The size gate remains separate. `npm run size:release` measures
-`peekling.min.js` plus `peekling.css` against the 32 KiB gzip and 32 KiB Brotli
+`peekling.min.js` plus `peekling.css` against the 40 KiB gzip and 40 KiB Brotli
 caps, including the required 256-byte release reserve defined in
 [`scripts/budgets.mjs`](../scripts/budgets.mjs).
+
+The current 0.1.1 candidate carries canonical size evidence for the artifact
+hashes recorded in
+[`scripts/browser-size-evidence.json`](../scripts/browser-size-evidence.json).
+Publication still requires the clean tagged release verifier.
 
 The first eligible visual frame is a native browser animation-frame boundary,
 not the resolution of a Promise or a DOM mutation timestamp. Before selecting

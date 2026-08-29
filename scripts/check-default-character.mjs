@@ -5,7 +5,7 @@ import { validateNativePack } from "../packages/runtime/dist/pack-api.js";
 import { characterPackReference } from "../packages/runtime/dist/registry.js";
 
 const canonical =
-  "https://cdn.jsdelivr.net/npm/@peekling/pack-peek@0.1.0/character.json";
+  "https://cdn.jsdelivr.net/npm/@peekling/pack-peek@0.1.1/character.json";
 const mode = process.argv[2];
 const localRoot = process.argv[3];
 const reference = characterPackReference("peek");
@@ -23,7 +23,7 @@ if (mode === "--local") {
   );
   if (
     packageManifest.name !== "@peekling/pack-peek" ||
-    packageManifest.version !== "0.1.0" ||
+    packageManifest.version !== "0.1.1" ||
     packageManifest.private === true ||
     packageManifest.license !== "Apache-2.0"
   ) {
@@ -64,7 +64,7 @@ if (
 const pack = validateNativePack(manifest);
 if (
   pack.name !== "peek" ||
-  pack.version !== "0.1.0" ||
+  pack.version !== "0.1.1" ||
   pack.license !== "Apache-2.0"
 )
   throw new Error("Pinned Peek manifest identity is invalid");

@@ -1,7 +1,7 @@
 # Configure Peekling
 
 > [!IMPORTANT] This guide describes the implemented public contract for version
-> `0.1.0`. The [execution model](execution-model.md) is authoritative for
+> `0.1.1`. The [execution model](execution-model.md) is authoritative for
 > scheduling and lifecycle ordering. The [release guide](RELEASING.md) covers
 > source provenance and publication.
 
@@ -48,6 +48,22 @@ Capabilities supported by the Pack.
 Simple behavior is a small Plan. It is not a second configuration language or
 execution engine.
 
+For a standard companion, start with a named preset. Presets compile into the
+same canonical Plan and are mutually exclusive with an explicit `plan`:
+
+```js
+const companion = hatch({
+  character: "peek",
+  preset: "companion",
+});
+```
+
+The available presets are `companion`, `still`, `bottom-patrol`, and
+`viewport-roam`. Direct dragging and throwing are enabled by default. A
+character click toggles its owned content bubble when one exists. The
+[interaction and motion guide](interaction-and-motion.md) explains those
+defaults and the optional fields that change them.
+
 ## Happy path
 
 This Vite example emits the required stylesheet and uses the Plan shape accepted
@@ -58,7 +74,7 @@ import { hatch } from "@peekling/runtime";
 import peeklingStyles from "@peekling/runtime/peekling.css?url";
 
 const companion = hatch({
-  packUrl: "/peeklings/moss/0.1.0/character.json",
+  packUrl: "/peeklings/moss/0.1.1/character.json",
   styles: { url: peeklingStyles },
   plan: {
     baseline: {
@@ -135,7 +151,7 @@ already declared by the selected Pack and must satisfy the integrity rules
 below.
 
 An explicit `character: "peek"` selection fetches the exact
-`@peekling/pack-peek@0.1.0` manifest from its pinned jsDelivr URL and compares
+`@peekling/pack-peek@0.1.1` manifest from its pinned jsDelivr URL and compares
 the raw response with an embedded SHA-256 before parsing it. The verified
 manifest declares the SHA-256 for every atlas candidate. A changed manifest
 fails before an atlas request. Hosts can instead pass an explicit self-hosted
@@ -196,7 +212,7 @@ The complete browser bundle exposes the same hatch contract:
 ```html
 <script
   defer
-  src="https://cdn.jsdelivr.net/npm/@peekling/runtime@0.1.0/dist/peekling.min.js"
+  src="https://cdn.jsdelivr.net/npm/@peekling/runtime@0.1.1/dist/peekling.min.js"
   integrity="sha384-<release-hash>"
   crossorigin="anonymous"
 ></script>
@@ -215,8 +231,8 @@ The Web Component owns one hatch instance per connected mount:
 ```html
 <peekling-character
   id="moss"
-  pack-url="/peeklings/moss/0.1.0/character.json"
-  styles-url="https://cdn.jsdelivr.net/npm/@peekling/runtime@0.1.0/dist/peekling.css"
+  pack-url="/peeklings/moss/0.1.1/character.json"
+  styles-url="https://cdn.jsdelivr.net/npm/@peekling/runtime@0.1.1/dist/peekling.css"
   styles-integrity="sha256-<stylesheet-release-hash>"
 ></peekling-character>
 <script type="module" src="/assets/moss-peekling.js"></script>
@@ -329,6 +345,12 @@ and `leave` observations enter the bounded Event queue with
 `{ selector, previousRatio, ratio }`. Matching Rules filter those facts by
 selector, phase, and threshold.
 
+When a Plan observes `window.scroll`, each scroll fact also releases the current
+continuous pointer target. Active follow-pointer motion stops at its current
+position while a matching scroll Rule can select the character's scroll State.
+Only the next pointer observation establishes a new follow target. The passive
+scroll listener never cancels or replaces native scrolling.
+
 ## Application Events
 
 `instance.emit(name, payload)` is Event ingress. It:
@@ -383,6 +405,68 @@ Effects declare the presentation channels they own. The minimum set is motion,
 character State, and named surface data. Disjoint ownership composes. For
 example, a pointer Rule can own motion while `job.progress` owns only
 `surface:job-progress`. Moving the mouse cannot reset the progress surface.
+
+### Motion modes
+
+`motion` is a closed discriminated union. Version `0.1.1` accepts these forms:
+
+| Type                | Purpose                                                      | Main optional fields               |
+| ------------------- | ------------------------------------------------------------ | ---------------------------------- |
+| `follow-pointer`    | Move toward the latest admitted pointer position.            | `speed`, `arrivalRadius`           |
+| `horizontal-patrol` | Move between safe left and right floor targets.              | `speed`, `edgeInset`               |
+| `viewport-traverse` | Traverse the safe floor, walls, and ceiling of the viewport. | `speed`, `edgeInset`, `clockwise`  |
+| `move-to`           | Move toward one bounded CSS-pixel coordinate.                | `speed`, `arrivalRadius`           |
+| `move-to-target`    | Move toward an anchor on one host-approved target.           | `anchor`, `speed`, `arrivalRadius` |
+| `jump-to`           | Interpolate to a coordinate with a bounded vertical arc.     | `duration`, `height`               |
+| `svg-path`          | Sample bounded SVG path data over time.                      | `duration`, `loop`, `relative`     |
+
+Every distance is measured in CSS pixels. `speed` defaults to 160 pixels per
+second. The pointer arrival radius and patrol edge inset default to 0.
+
+When follow-pointer motion has no current target or reaches its arrival radius,
+it produces no motion request. A selected `locomotion` Capability is then
+cleared from the composed output and the exact baseline State is selected when
+one is declared. This remains true when separate Rules own motion and State. An
+independently selected exact State is preserved.
+
+A patrol starts by moving toward the right target. It then reverses at each
+edge. `edgeInset` measures inward from the left and right character edges. The
+runtime keeps both targets on the character-safe bottom edge. Peekling uses the
+rendered character width and height when it calculates both targets. It
+recalculates them against the current viewport, clamps an oversized inset, and
+never lets a movement step pass its target. If the viewport is too narrow for
+two distinct targets, both targets safely collapse to the available center.
+
+Patrol and traversal motion do not read the pointer. The most direct patrol
+configuration owns motion in the baseline:
+
+```json
+{
+  "baseline": {
+    "channels": ["motion", "state"],
+    "motion": {
+      "type": "horizontal-patrol",
+      "speed": 120,
+      "edgeInset": 24
+    },
+    "state": { "capability": "locomotion" }
+  }
+}
+```
+
+The selected Pack must provide the `locomotion` Capability when State uses that
+Capability. `move-to-target` also requires a matching ID in the top-level
+`targets` registry. The compiler rejects unknown target IDs. `svg-path` accepts
+one bounded path string, validates it with detached browser geometry, and never
+inserts it as markup or evaluates it.
+
+Reduced-motion policy suppresses autonomous and release-momentum motion while
+preserving direct dragging. It renders the same safe static tableau described in
+the lifecycle section.
+
+The [interaction and motion guide](interaction-and-motion.md) documents all
+numeric bounds, target anchors, throw ownership, path restart behavior, and the
+optional Canvas renderer.
 
 Two Rules that can write the same named surface or data channel need an explicit
 conflict policy. Hatch rejects the Configuration if that policy is missing.
@@ -461,6 +545,53 @@ explicitly write that surface, the Event is admitted once and those Rules still
 apply in declaration order. Ordering belongs only to application Event Rules, so
 it is invalid on baseline surfaces, browser Rules, and Overrides.
 
+## Character interaction
+
+The runtime creates one accessible character control unless `interaction: false`
+is set. Drag and throw are enabled by default. Pressing the character toggles
+owned content. A host can choose `show-content`, `hide-content`, an application
+Event, or no press action without changing the Plan grammar.
+
+```js
+const companion = hatch({
+  character: "peek",
+  plan: reviewPlan,
+  content: reviewContent,
+  bindings: reviewBindings,
+  interaction: {
+    contentInitiallyHidden: true,
+    clearIndicatorOnPress: true,
+    label: "Open Peek's review",
+  },
+  indicator: {
+    kind: "count",
+    count: 1,
+    label: "One review needs attention",
+    color: "#b0004f",
+  },
+});
+```
+
+`instance.setIndicator(next)` replaces the dot or count notification. Passing
+`null` clears it. `color` accepts `transparent` or a 3, 4, 6, or 8 digit
+hexadecimal color. This is instance presentation state and does not mutate the
+Plan.
+
+`instance.setContentVisible(visible)` gives host controls an explicit show or
+close action for runtime-owned content. `instance.toggleContent()` uses the same
+toggle as the default character press. Both methods return the resulting visible
+state and leave the Plan unchanged.
+
+Throw physics are elapsed-time based and bounded by Configuration. During drag
+or throw, direct manipulation temporarily owns position and Plan motion is
+suppressed. Landing or catching releases position back to the unchanged Plan.
+Targets remain host-approved geometry references. The runtime reads their
+rectangles and never moves, styles, reparents, or activates host elements.
+
+Read [Character interaction and motion](interaction-and-motion.md) for the
+complete default table, target-catching example, custom SVG route, reduced
+motion behavior, and DOM or Canvas renderer parity.
+
 ## Temporary Overrides
 
 Peekling also needs direct temporary control for cases such as an application
@@ -526,7 +657,7 @@ This example uses the implemented host mount seam.
 
 ```js
 const companion = hatch({
-  packUrl: "/peeklings/moss/0.1.0/character.json",
+  packUrl: "/peeklings/moss/0.1.1/character.json",
   plan: guidePlan,
   content: {
     review: {
@@ -601,7 +732,7 @@ High-frequency progress should use eligible `coalesce: "latest"` Rules or be
 rate-limited by host code before it calls `emit`. Session IDs and ordered
 revisions remain part of admission even when intermediate Events coalesce. This
 approach keeps content changes inside one validation, ordering, lifecycle, and
-diagnostic model. `0.1.0` has no runtime `rateLimit` Plan field or second direct
+diagnostic model. `0.1.1` has no runtime `rateLimit` Plan field or second direct
 content-update interface.
 
 ## ESM and browser-bundle delivery
@@ -751,7 +882,7 @@ tasks can delay Peekling frames. Peekling therefore promises bounded measured
 work and graceful degradation, not independent frame timing.
 
 An instance lasts for one document lifetime unless the host destroys it sooner.
-`0.1.0` does not restore Plan state, Event queues, Overrides, position, content
+`0.1.1` does not restore Plan state, Event queues, Overrides, position, content
 state, or handles after `pagehide`. A `pushState`, hash, or client-side route
 change does not end a direct hatch instance by itself. Single-page applications
 must call `destroy()` when its owning view ends, or disconnect the Web Component
@@ -769,7 +900,7 @@ settles exactly once after cleanup with reason `destroyed`, `pagehide`, or
 
 ## Strict CSP
 
-Strict Content Security Policy compatibility is a `0.1.0` release gate. Peekling
+Strict Content Security Policy compatibility is a `0.1.1` release gate. Peekling
 must not require `unsafe-inline` or `unsafe-eval`. It does not inject raw HTML
 or inline event attributes.
 
@@ -799,7 +930,7 @@ configuration when the stylesheet is hosted elsewhere:
 const companion = Peekling.hatch({
   packUrl: "/packs/moss/character.json",
   styles: {
-    url: "https://static.example.com/peekling/0.1.0/peekling.css",
+    url: "https://static.example.com/peekling/0.1.1/peekling.css",
     integrity: "sha256-<stylesheet-release-hash>",
   },
 });

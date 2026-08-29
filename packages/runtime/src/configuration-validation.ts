@@ -1,5 +1,11 @@
 import { validateHostContent } from "./content.js";
-import { isHttpPath, isSurfaceColor, NAME_PATTERN } from "./contracts.js";
+import {
+  EVENT_NAME_PATTERN,
+  isHttpPath,
+  isSurfaceColor,
+  NAME_PATTERN,
+  STATE_NAME_PATTERN,
+} from "./contracts.js";
 import { isRegisteredCharacter } from "./registry.js";
 import { compactRuntimeDiagnostics } from "./runtime-diagnostics.js";
 import type { PeeklingOptions } from "./runtime.js";
@@ -16,6 +22,10 @@ const CONFIGURATION_FIELDS = [
   "atlasUrl",
   "styles",
   "plan",
+  "preset",
+  "targets",
+  "interaction",
+  "indicator",
   "content",
   "bindings",
   "theme",
@@ -74,6 +84,17 @@ export function validateConfiguration(
 
   if (options.format !== undefined && options.format !== 1) {
     reportConfigurationFault("unsupported-format", "$.format", fault);
+  }
+  if (options.plan !== undefined && options.preset !== undefined) {
+    reportConfigurationFault("incompatible-behavior", "$.preset", fault);
+  }
+  if (
+    options.preset !== undefined &&
+    !["companion", "still", "bottom-patrol", "viewport-roam"].includes(
+      options.preset,
+    )
+  ) {
+    reportConfigurationFault("invalid-preset", "$.preset", fault);
   }
   if (options.character !== undefined) {
     if (
@@ -193,6 +214,12 @@ export function validateConfiguration(
   }
 
   validateBindings(options.bindings, content, fault);
+  validateTargets(options.targets, fault);
+  validateInteraction(options.interaction, options.targets, fault);
+  validateIndicator(options.indicator, fault);
+  if (options.interaction === false && options.indicator !== undefined) {
+    reportConfigurationFault("incompatible-indicator", "$.indicator", fault);
+  }
   validateTheme(options.theme, fault);
   validateDiagnostics(options.diagnostics, fault);
   validateAccessibility(options.accessibility, fault);
@@ -202,6 +229,262 @@ export function validateConfiguration(
     }
   }
   return content;
+}
+
+function validateInteraction(
+  interaction: PeeklingOptions["interaction"],
+  targets: PeeklingOptions["targets"],
+  fault: ConfigurationFaultSink,
+): void {
+  if (interaction === undefined || interaction === false) return;
+  const checked = shape(
+    interaction,
+    "invalid-interaction",
+    "$.interaction",
+    [
+      "press",
+      "pressEvent",
+      "drag",
+      "throw",
+      "dragState",
+      "riseState",
+      "fallState",
+      "landState",
+      "gravity",
+      "maxThrowSpeed",
+      "bounce",
+      "floorInset",
+      "label",
+      "contentInitiallyHidden",
+      "clearIndicatorOnPress",
+      "catchTarget",
+      "catchAnchor",
+      "catchMargin",
+      "catchEvent",
+    ],
+    fault,
+  );
+  if (collectConfigurationFaults && !checked) return;
+  const value = checked!;
+  if (
+    value.press !== undefined &&
+    ![
+      "toggle-content",
+      "show-content",
+      "hide-content",
+      "emit",
+      "none",
+    ].includes(value.press as string)
+  ) {
+    reportConfigurationFault(
+      "invalid-interaction",
+      "$.interaction.press",
+      fault,
+    );
+  }
+  if (
+    value.pressEvent !== undefined &&
+    (typeof value.pressEvent !== "string" ||
+      !EVENT_NAME_PATTERN.test(value.pressEvent))
+  ) {
+    reportConfigurationFault(
+      "invalid-interaction-event",
+      "$.interaction.pressEvent",
+      fault,
+    );
+  }
+  if (value.press === "emit" && value.pressEvent === undefined) {
+    reportConfigurationFault(
+      "missing-interaction-event",
+      "$.interaction.pressEvent",
+      fault,
+    );
+  }
+  if (
+    value.pressEvent !== undefined &&
+    value.press !== undefined &&
+    value.press !== "emit"
+  ) {
+    reportConfigurationFault(
+      "incompatible-interaction-event",
+      "$.interaction.pressEvent",
+      fault,
+    );
+  }
+  for (const field of [
+    "drag",
+    "throw",
+    "contentInitiallyHidden",
+    "clearIndicatorOnPress",
+  ] as const) {
+    if (value[field] !== undefined && typeof value[field] !== "boolean") {
+      reportConfigurationFault(
+        "invalid-interaction",
+        `$.interaction.${field}`,
+        fault,
+      );
+    }
+  }
+  for (const field of [
+    "dragState",
+    "riseState",
+    "fallState",
+    "landState",
+  ] as const) {
+    if (
+      value[field] !== undefined &&
+      (typeof value[field] !== "string" ||
+        !STATE_NAME_PATTERN.test(value[field]))
+    ) {
+      reportConfigurationFault(
+        "invalid-interaction-state",
+        `$.interaction.${field}`,
+        fault,
+      );
+    }
+  }
+  for (const [field, minimum, maximum] of [
+    ["gravity", 0, 10_000],
+    ["maxThrowSpeed", 0, 10_000],
+    ["bounce", 0, 1],
+    ["floorInset", 0, 1_000],
+    ["catchMargin", 0, 1_000],
+  ] as const) {
+    const item = value[field];
+    if (
+      item !== undefined &&
+      (typeof item !== "number" ||
+        !Number.isFinite(item) ||
+        item < minimum ||
+        item > maximum)
+    ) {
+      reportConfigurationFault(
+        "invalid-interaction-range",
+        `$.interaction.${field}`,
+        fault,
+      );
+    }
+  }
+  if (value.label !== undefined && !text(value.label, 120)) {
+    reportConfigurationFault(
+      "invalid-interaction-label",
+      "$.interaction.label",
+      fault,
+    );
+  }
+  if (
+    value.catchTarget !== undefined &&
+    (typeof value.catchTarget !== "string" ||
+      !NAME_PATTERN.test(value.catchTarget) ||
+      !Object.hasOwn(targets ?? {}, value.catchTarget))
+  ) {
+    reportConfigurationFault(
+      "invalid-catch-target",
+      "$.interaction.catchTarget",
+      fault,
+    );
+  }
+  if (
+    value.catchAnchor !== undefined &&
+    !["center", "top", "right", "bottom", "left"].includes(
+      value.catchAnchor as string,
+    )
+  ) {
+    reportConfigurationFault(
+      "invalid-catch-anchor",
+      "$.interaction.catchAnchor",
+      fault,
+    );
+  }
+  if (
+    value.catchEvent !== undefined &&
+    (typeof value.catchEvent !== "string" ||
+      !EVENT_NAME_PATTERN.test(value.catchEvent))
+  ) {
+    reportConfigurationFault(
+      "invalid-interaction-event",
+      "$.interaction.catchEvent",
+      fault,
+    );
+  }
+}
+
+function validateIndicator(
+  indicator: PeeklingOptions["indicator"],
+  fault: ConfigurationFaultSink,
+): void {
+  if (indicator === undefined) return;
+  const checked = shape(
+    indicator,
+    "invalid-indicator",
+    "$.indicator",
+    ["kind", "count", "label", "color", "visible"],
+    fault,
+  );
+  if (collectConfigurationFaults && !checked) return;
+  const value = checked!;
+  if (
+    value.kind !== undefined &&
+    value.kind !== "dot" &&
+    value.kind !== "count"
+  ) {
+    reportConfigurationFault("invalid-indicator", "$.indicator.kind", fault);
+  }
+  if (!text(value.label, 120)) {
+    reportConfigurationFault("invalid-indicator", "$.indicator.label", fault);
+  }
+  if (
+    value.count !== undefined &&
+    (typeof value.count !== "number" ||
+      !Number.isInteger(value.count) ||
+      value.count < 0 ||
+      value.count > 999)
+  ) {
+    reportConfigurationFault("invalid-indicator", "$.indicator.count", fault);
+  }
+  if (value.color !== undefined && !isSurfaceColor(value.color)) {
+    reportConfigurationFault("invalid-indicator", "$.indicator.color", fault);
+  }
+  if (value.visible !== undefined && typeof value.visible !== "boolean") {
+    reportConfigurationFault("invalid-indicator", "$.indicator.visible", fault);
+  }
+}
+
+function validateTargets(
+  targets: PeeklingOptions["targets"],
+  fault: ConfigurationFaultSink,
+): void {
+  if (targets === undefined) return;
+  const checked = shape(
+    targets,
+    "invalid-targets",
+    "$.targets",
+    undefined,
+    fault,
+  );
+  if (collectConfigurationFaults && !checked) return;
+  const entries = Object.entries(checked!);
+  if (entries.length > 16) {
+    reportConfigurationFault("target-limit", "$.targets", fault);
+  }
+  for (const [id, selector] of entries) {
+    if (!NAME_PATTERN.test(id)) {
+      reportConfigurationFault("invalid-target", `$.targets.${id}`, fault, id);
+    }
+    if (
+      typeof selector !== "string" ||
+      selector.length < 1 ||
+      selector.length > 256 ||
+      /[\0\r\n]/.test(selector)
+    ) {
+      reportConfigurationFault(
+        "invalid-target-selector",
+        `$.targets.${id}`,
+        fault,
+        id,
+      );
+    }
+  }
 }
 
 export function validRuntimeName(value: PeeklingOptions["name"]): boolean {

@@ -13,6 +13,7 @@ import type {
 } from "../packages/runtime/src/types.js";
 import type {
   PeeklingHatchInput,
+  PeeklingIndicator,
   PeeklingInstance as RuntimePeeklingInstance,
   PeeklingOptions,
 } from "../packages/runtime/src/runtime.js";
@@ -133,6 +134,17 @@ const invalidTheme: SurfaceTheme = {
   // @ts-expect-error Theme colors cannot be CSS functions or resource values.
   background: 'image-set("https://theme-probe.test/pixel.png" 1x)',
 };
+const validIndicator: PeeklingIndicator = {
+  kind: "count",
+  count: 1,
+  label: "One edit is ready",
+  color: "#b0004f",
+};
+const invalidIndicator: PeeklingIndicator = {
+  label: "One edit is ready",
+  // @ts-expect-error Indicator colors use the same closed color grammar as surface themes.
+  color: 'url("https://indicator-probe.test/pixel.png")',
+};
 
 const runtimeBaselineInterrupt: RuntimePlan = {
   baseline: {
@@ -230,6 +242,8 @@ void [
   queuedOverride,
   validTheme,
   invalidTheme,
+  validIndicator,
+  invalidIndicator,
   runtimeBaselineInterrupt,
   runtimeBaselineWithoutState,
   runtimeBaselineOrdering,

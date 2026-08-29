@@ -3,10 +3,13 @@ export {
   type PeeklingFinishReason,
   type PeeklingFinishResult,
   type PeeklingHatchInput,
+  type PeeklingIndicator,
+  type PeeklingInteractionOptions,
   type PeeklingInstance,
   type PeeklingOptions,
   type PeeklingPackSelection,
   type PeeklingPosition,
+  type PeeklingPressAction,
 } from "./runtime.js";
 export {
   hidePeekling,
@@ -47,6 +50,7 @@ export type {
   PlanEffect,
   PlanEventSource,
   PlanMotionEffect,
+  PeeklingPreset,
   PlanRule,
   PlanStateSelection,
   PlanSurfaceEffect,
@@ -59,4 +63,6 @@ export type {
   OverrideStatus,
   StateDefinition,
   SurfaceTheme,
+  TargetAnchor,
+  TargetSnapshot,
 } from "./types.js";

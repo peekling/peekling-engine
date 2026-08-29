@@ -181,7 +181,7 @@ test("event payloads preserve an own __proto__ field without prototype mutation"
 });
 
 test("the character registry cannot resolve inherited Object keys", () => {
-  assert.match(characterManifestUrl("peek"), /pack-peek@0\.1\.0/);
+  assert.match(characterManifestUrl("peek"), /pack-peek@0\.1\.1/);
   assert.throws(() => characterManifestUrl("constructor"), /Unknown/);
 });
 

@@ -40,10 +40,14 @@ const PUBLIC_RUNTIME_TYPES = [
   "PeeklingFinishResult",
   "PeeklingHatchInput",
   "PeeklingHideDuration",
+  "PeeklingIndicator",
   "PeeklingInstance",
+  "PeeklingInteractionOptions",
   "PeeklingOptions",
   "PeeklingPackSelection",
   "PeeklingPosition",
+  "PeeklingPreset",
+  "PeeklingPressAction",
   "Plan",
   "PlanBrowserEvent",
   "PlanCapability",
@@ -60,6 +64,8 @@ const PUBLIC_RUNTIME_TYPES = [
   "RuntimeStyleAsset",
   "StateDefinition",
   "SurfaceTheme",
+  "TargetAnchor",
+  "TargetSnapshot",
 ];
 
 test("the ESM root exposes only the supported hatch integration surface", async () => {
@@ -96,6 +102,11 @@ test("the pack subpath contains only the deliberate shared Pack gate", async () 
   ]);
 });
 
+test("the Canvas subpath exposes only the renderer-selecting hatch helper", async () => {
+  const canvas = await import("@peekling/runtime/canvas");
+  assert.deepEqual(Object.keys(canvas), ["hatchCanvas"]);
+});
+
 test("the ESM package exposes its required stylesheet as a stable asset", async () => {
   const stylesheetUrl = import.meta.resolve("@peekling/runtime/peekling.css");
   const stylesheet = await readFile(new URL(stylesheetUrl), "utf8");
@@ -109,11 +120,13 @@ test("package exports separate the runtime root, browser side effects, and pack 
   assert.deepEqual(Object.keys(metadata.exports).sort(), [
     ".",
     "./browser",
+    "./canvas",
     "./pack",
     "./peekling.css",
     "./preflight",
   ]);
   assert.equal(metadata.exports["."].import, "./dist/index.js");
+  assert.equal(metadata.exports["./canvas"].import, "./dist/canvas.js");
   assert.equal(metadata.exports["./pack"].import, "./dist/pack-api.js");
   assert.equal(
     metadata.exports["./preflight"].import,

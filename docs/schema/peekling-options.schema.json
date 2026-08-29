@@ -10,6 +10,16 @@
     { "required": ["pack"] },
     { "required": ["packUrl"] }
   ],
+  "allOf": [
+    { "not": { "required": ["plan", "preset"] } },
+    {
+      "if": {
+        "required": ["interaction"],
+        "properties": { "interaction": { "const": false } }
+      },
+      "then": { "not": { "required": ["indicator"] } }
+    }
+  ],
   "properties": {
     "format": {
       "const": 1,
@@ -78,6 +88,22 @@
     "plan": {
       "$ref": "#/$defs/plan",
       "description": "Host-owned declarative behavior and content selection plan."
+    },
+    "preset": {
+      "enum": ["companion", "still", "bottom-patrol", "viewport-roam"],
+      "description": "Named starting behavior compiled into the same canonical Plan. Mutually exclusive with plan."
+    },
+    "targets": {
+      "$ref": "#/$defs/targetRegistry",
+      "description": "Host-approved target IDs mapped to bounded CSS selectors."
+    },
+    "interaction": {
+      "description": "Accessible character press, drag, throw, landing, and target-catch behavior. Enabled by default.",
+      "oneOf": [{ "const": false }, { "$ref": "#/$defs/characterInteraction" }]
+    },
+    "indicator": {
+      "$ref": "#/$defs/characterIndicator",
+      "description": "Optional notification badge on the accessible character control."
     },
     "content": {
       "$ref": "#/$defs/contentRegistry",
@@ -721,6 +747,114 @@
       "maxLength": 256,
       "pattern": "^[^\\u0000\\r\\n]+$"
     },
+    "targetRegistry": {
+      "description": "Host-approved target IDs and bounded CSS selectors.",
+      "type": "object",
+      "additionalProperties": false,
+      "maxProperties": 16,
+      "patternProperties": {
+        "^[a-z][a-z0-9:-]{0,63}$": { "$ref": "#/$defs/selector" }
+      }
+    },
+    "targetAnchor": {
+      "enum": ["center", "top", "right", "bottom", "left"]
+    },
+    "characterInteraction": {
+      "description": "Accessible direct manipulation and character press policy.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "press": {
+          "enum": [
+            "toggle-content",
+            "show-content",
+            "hide-content",
+            "emit",
+            "none"
+          ],
+          "default": "toggle-content"
+        },
+        "pressEvent": {
+          "type": "string",
+          "pattern": "^(?=.{1,64}$)[a-z][a-z0-9]*(?:[.:-][a-z][a-z0-9-]*)*$"
+        },
+        "drag": { "type": "boolean", "default": true },
+        "throw": { "type": "boolean", "default": true },
+        "dragState": { "$ref": "#/$defs/stateName" },
+        "riseState": { "$ref": "#/$defs/stateName" },
+        "fallState": { "$ref": "#/$defs/stateName" },
+        "landState": { "$ref": "#/$defs/stateName" },
+        "gravity": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 10000,
+          "default": 1800
+        },
+        "maxThrowSpeed": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 10000,
+          "default": 1800
+        },
+        "bounce": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 0.35
+        },
+        "floorInset": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1000,
+          "default": 8
+        },
+        "label": { "$ref": "#/$defs/plainText120" },
+        "contentInitiallyHidden": { "type": "boolean", "default": false },
+        "clearIndicatorOnPress": { "type": "boolean", "default": false },
+        "catchTarget": { "$ref": "#/$defs/name" },
+        "catchAnchor": { "$ref": "#/$defs/targetAnchor" },
+        "catchMargin": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1000,
+          "default": 24
+        },
+        "catchEvent": {
+          "type": "string",
+          "pattern": "^(?=.{1,64}$)[a-z][a-z0-9]*(?:[.:-][a-z][a-z0-9-]*)*$"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "required": ["press"],
+            "properties": { "press": { "const": "emit" } }
+          },
+          "then": { "required": ["pressEvent"] }
+        },
+        {
+          "if": { "required": ["pressEvent"] },
+          "then": { "properties": { "press": { "const": "emit" } } }
+        }
+      ]
+    },
+    "characterIndicator": {
+      "description": "Accessible notification badge attached to the character control.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["label"],
+      "properties": {
+        "kind": { "enum": ["dot", "count"], "default": "dot" },
+        "count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 999
+        },
+        "label": { "$ref": "#/$defs/plainText120" },
+        "color": { "$ref": "#/$defs/colorToken" },
+        "visible": { "type": "boolean", "default": true }
+      }
+    },
     "planChannel": {
       "description": "Presentation channel owned by an Effect.",
       "type": "string",
@@ -902,7 +1036,18 @@
       ]
     },
     "planMotionEffect": {
-      "description": "Bounded follow-pointer motion selection.",
+      "description": "Bounded built-in motion or browser-sampled SVG path selection.",
+      "oneOf": [
+        { "$ref": "#/$defs/followPointerMotionEffect" },
+        { "$ref": "#/$defs/horizontalPatrolMotionEffect" },
+        { "$ref": "#/$defs/viewportTraverseMotionEffect" },
+        { "$ref": "#/$defs/moveToMotionEffect" },
+        { "$ref": "#/$defs/moveToTargetMotionEffect" },
+        { "$ref": "#/$defs/jumpToMotionEffect" },
+        { "$ref": "#/$defs/svgPathMotionEffect" }
+      ]
+    },
+    "followPointerMotionEffect": {
       "type": "object",
       "additionalProperties": false,
       "required": ["type"],
@@ -910,6 +1055,95 @@
         "type": { "const": "follow-pointer" },
         "speed": { "$ref": "#/$defs/speed" },
         "arrivalRadius": { "$ref": "#/$defs/arrivalRadius" }
+      }
+    },
+    "horizontalPatrolMotionEffect": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type"],
+      "properties": {
+        "type": { "const": "horizontal-patrol" },
+        "speed": { "$ref": "#/$defs/speed" },
+        "edgeInset": { "$ref": "#/$defs/patrolOffset" }
+      }
+    },
+    "viewportTraverseMotionEffect": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type"],
+      "properties": {
+        "type": { "const": "viewport-traverse" },
+        "speed": { "$ref": "#/$defs/speed" },
+        "edgeInset": { "$ref": "#/$defs/patrolOffset" },
+        "clockwise": { "type": "boolean", "default": true }
+      }
+    },
+    "moveToMotionEffect": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "x", "y"],
+      "properties": {
+        "type": { "const": "move-to" },
+        "x": { "$ref": "#/$defs/boundedPixelCoordinate" },
+        "y": { "$ref": "#/$defs/boundedPixelCoordinate" },
+        "speed": { "$ref": "#/$defs/speed" },
+        "arrivalRadius": { "$ref": "#/$defs/arrivalRadius" }
+      }
+    },
+    "moveToTargetMotionEffect": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "target"],
+      "properties": {
+        "type": { "const": "move-to-target" },
+        "target": { "$ref": "#/$defs/name" },
+        "anchor": { "$ref": "#/$defs/targetAnchor" },
+        "speed": { "$ref": "#/$defs/speed" },
+        "arrivalRadius": { "$ref": "#/$defs/arrivalRadius" }
+      }
+    },
+    "jumpToMotionEffect": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "x", "y"],
+      "properties": {
+        "type": { "const": "jump-to" },
+        "x": { "$ref": "#/$defs/boundedPixelCoordinate" },
+        "y": { "$ref": "#/$defs/boundedPixelCoordinate" },
+        "duration": {
+          "type": "number",
+          "minimum": 100,
+          "maximum": 10000,
+          "default": 800
+        },
+        "height": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 2000
+        }
+      }
+    },
+    "svgPathMotionEffect": {
+      "description": "SVG path data sampled with detached browser geometry. It is never inserted as markup or evaluated.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "path"],
+      "properties": {
+        "type": { "const": "svg-path" },
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096,
+          "pattern": "^[^\\u0000\\r\\n]+$"
+        },
+        "duration": {
+          "type": "number",
+          "minimum": 100,
+          "maximum": 60000,
+          "default": 4000
+        },
+        "loop": { "type": "boolean", "default": false },
+        "relative": { "type": "boolean", "default": true }
       }
     },
     "planSurfaceOrdering": {
@@ -1115,11 +1349,22 @@
       "minimum": 1,
       "maximum": 1000
     },
+    "boundedPixelCoordinate": {
+      "type": "number",
+      "minimum": -100000,
+      "maximum": 100000
+    },
     "arrivalRadius": {
       "type": "number",
       "minimum": 0,
       "maximum": 1000,
       "description": "Center-to-target distance in CSS pixels at which movement is complete."
+    },
+    "patrolOffset": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1000,
+      "description": "A CSS-pixel inset from a patrol edge."
     },
     "padding": {
       "type": "number",

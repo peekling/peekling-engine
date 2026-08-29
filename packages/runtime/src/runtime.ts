@@ -1,9 +1,13 @@
 import { ContentRenderer, type ContentSelection } from "./content.js";
 import { InputCollector } from "./input.js";
+import {
+  CharacterInteractionController,
+  type CharacterIndicator,
+} from "./interaction.js";
 import { browserCompletionEvent, validateEventPayload } from "./events.js";
 import { directionTo } from "./direction.js";
 import { DiagnosticChannel } from "./diagnostics.js";
-import { EVENT_NAME_PATTERN } from "./contracts.js";
+import { EVENT_NAME_PATTERN, isSurfaceColor } from "./contracts.js";
 import { DEFAULT_MAX_DENSITY, DEFAULT_POSITION } from "./defaults.js";
 import {
   animationCycleMs,
@@ -19,7 +23,7 @@ import { resolveCapabilityName } from "./normalized.js";
 import {
   PlanRuntime,
   compiledPlanSectionRequirements,
-  createDefaultPlan,
+  createPresetPlan,
 } from "./plan.js";
 import { compilePlan } from "./plan-compiler.js";
 import {
@@ -28,9 +32,15 @@ import {
 } from "./runtime-validation.js";
 import { runtimeMessage } from "./runtime-diagnostics.js";
 import { OverrideManager, rejectedOverrideHandle } from "./overrides.js";
-import { AtlasRenderer } from "./renderer.js";
+import {
+  createAtlasRenderer,
+  type CharacterRenderer,
+  type CharacterRendererFactory,
+} from "./renderer.js";
 import { resolveState } from "./resolver.js";
 import { SectionTracker } from "./sections.js";
+import { SvgPathSampler } from "./path-sampler.js";
+import { TargetTracker } from "./targets.js";
 import { registerSiteVisibility } from "./visibility.js";
 import { snapshotConfiguration } from "./own-data.js";
 import type { RuntimeStyleAsset } from "./styles.js";
@@ -45,11 +55,14 @@ import {
   type NativeManifest,
   type NormalizedPack,
   type Point,
+  type PeeklingPreset,
   type Plan,
   type PlanBrowserEvent,
   type OverrideHandle,
   type OverrideInput,
   type SurfaceTheme,
+  type TargetAnchor,
+  type TargetSnapshot,
   type World,
 } from "./types.js";
 
@@ -57,6 +70,10 @@ const SUSPEND_HOST = 1;
 const SUSPEND_PAGE = 2;
 const SUSPEND_SITE = 4;
 const MAX_TIMER_DELAY = 2_147_483_647;
+const DEFAULT_GRAVITY = 1_800;
+const DEFAULT_THROW_SPEED = 1_800;
+const DEFAULT_BOUNCE = 0.35;
+const DEFAULT_FLOOR_INSET = 8;
 const EMPTY_CONTENT_SELECTIONS: readonly ContentSelection[] = Object.freeze([]);
 
 function browserSelectorIsValid(document: Document, selector: string): boolean {
@@ -116,7 +133,7 @@ interface ActiveFrame {
   readonly now: number;
   readonly elapsed: number;
   readonly stepMs: number;
-  readonly renderer: AtlasRenderer;
+  readonly renderer: CharacterRenderer;
   readonly loaded: LoadedPack;
   readonly input: InputCollector;
   readonly plan: PlanRuntime;
@@ -152,6 +169,35 @@ interface FramePresentation {
 export type PeeklingPosition =
   "bottom-left" | "bottom-right" | "center" | Readonly<Point>;
 
+export type PeeklingPressAction =
+  "toggle-content" | "show-content" | "hide-content" | "emit" | "none";
+
+export interface PeeklingInteractionOptions {
+  /** Defaults to toggle-content. Setting pressEvent defaults this to emit. */
+  press?: PeeklingPressAction;
+  /** Bounded application Event emitted by the emit press action. */
+  pressEvent?: string;
+  drag?: boolean;
+  throw?: boolean;
+  dragState?: string;
+  riseState?: string;
+  fallState?: string;
+  landState?: string;
+  gravity?: number;
+  maxThrowSpeed?: number;
+  bounce?: number;
+  floorInset?: number;
+  label?: string;
+  contentInitiallyHidden?: boolean;
+  clearIndicatorOnPress?: boolean;
+  catchTarget?: string;
+  catchAnchor?: TargetAnchor;
+  catchMargin?: number;
+  catchEvent?: string;
+}
+
+export type PeeklingIndicator = CharacterIndicator;
+
 export interface PeeklingOptions {
   /** Serializable options contract version. Defaults to 1. */
   format?: 1;
@@ -166,6 +212,14 @@ export interface PeeklingOptions {
   styles?: RuntimeStyleAsset;
   /** Host-owned immutable Plan. Packs remain data-only. */
   plan?: Plan;
+  /** Named simple behavior compiled into the same canonical Plan. */
+  preset?: PeeklingPreset;
+  /** Host-approved element geometry available to target-aware motion. */
+  targets?: Readonly<Record<string, string>>;
+  /** Direct manipulation is enabled by default. Set false to remove the hit target. */
+  interaction?: false | PeeklingInteractionOptions;
+  /** Optional notification state rendered on the owned character hit target. */
+  indicator?: PeeklingIndicator;
   /** Host-owned accessible text and links referenced by plan contentId values. */
   content?: HostContent;
   /** Property-only host surface mounts. */
@@ -222,6 +276,36 @@ function hatchOptions(input?: PeeklingHatchInput): PeeklingOptions {
   return input;
 }
 
+function checkedIndicator(
+  input: PeeklingIndicator | null,
+): PeeklingIndicator | undefined {
+  if (input === null) return;
+  const value = snapshotConfiguration(input);
+  if (
+    !value ||
+    typeof value !== "object" ||
+    Array.isArray(value) ||
+    (value.kind !== undefined &&
+      value.kind !== "dot" &&
+      value.kind !== "count") ||
+    typeof value.label !== "string" ||
+    value.label.length < 1 ||
+    value.label.length > 120 ||
+    /[\u0000-\u001f\u007f]/.test(value.label) ||
+    (value.count !== undefined &&
+      (!Number.isInteger(value.count) ||
+        value.count < 0 ||
+        value.count > 999)) ||
+    (value.color !== undefined && !isSurfaceColor(value.color)) ||
+    (value.visible !== undefined && typeof value.visible !== "boolean")
+  ) {
+    throw new TypeError(
+      runtimeMessage("indicator.invalid", "Indicator is invalid"),
+    );
+  }
+  return value;
+}
+
 /** Owned runtime handle returned by hatch and Web Component readiness. */
 export interface PeeklingInstance {
   readonly ready: Promise<PeeklingInstance>;
@@ -231,14 +315,25 @@ export interface PeeklingInstance {
   override(value: OverrideInput): OverrideHandle;
   pause(): void;
   resume(): void;
+  /** Re-resolve configured target selectors after host layout changes. */
+  refreshTargets(): void;
+  setIndicator(indicator: PeeklingIndicator | null): void;
+  /** Show or hide every content surface owned by this character. */
+  setContentVisible(visible: boolean): boolean;
+  /** Toggle every content surface owned by this character. */
+  toggleContent(): boolean;
   destroy(): void;
 }
 
 /** Package-internal implementation. It is not a supported import. */
 export class PeeklingRuntime implements PeeklingInstance {
-  static hatch(input: PeeklingHatchInput | PeeklingOptions): PeeklingRuntime {
+  static hatch(
+    input: PeeklingHatchInput | PeeklingOptions,
+    rendererFactory: CharacterRendererFactory = createAtlasRenderer,
+  ): PeeklingRuntime {
     return new PeeklingRuntime(
       hatchOptions(input as PeeklingHatchInput | undefined),
+      rendererFactory,
     );
   }
 
@@ -279,9 +374,11 @@ export class PeeklingRuntime implements PeeklingInstance {
   #destroyed = false;
   #abort = new AbortController();
   #loaded?: LoadedPack;
-  #renderer?: AtlasRenderer;
+  #renderer?: CharacterRenderer;
   #contentRenderer?: ContentRenderer;
+  #interactionController?: CharacterInteractionController;
   #sections?: SectionTracker;
+  #targets?: TargetTracker;
   #input: InputCollector | undefined;
   #raf = 0;
   #planTimer = 0;
@@ -317,11 +414,22 @@ export class PeeklingRuntime implements PeeklingInstance {
   readonly #instanceId: string;
   readonly #diagnostics: DiagnosticChannel;
   readonly #styles: RuntimeStyleAsset;
+  readonly #rendererFactory: CharacterRendererFactory;
   #rejectedOverrideId = 0;
   #reportedNotReadyEvent = false;
   #reportedNotReadyOverride = false;
+  #trackTargets = false;
+  readonly #pathSampler: SvgPathSampler;
+  #indicator: PeeklingIndicator | undefined;
+  #dragging = false;
+  #throwing = false;
+  #throwVelocity: Point = { x: 0, y: 0 };
+  #landUntil = 0;
 
-  constructor(options: PeeklingOptions = {}) {
+  constructor(
+    options: PeeklingOptions = {},
+    rendererFactory: CharacterRendererFactory = createAtlasRenderer,
+  ) {
     options = snapshotConfiguration(options);
     const document = options.document ?? globalThis.document;
     const window = options.window ?? globalThis.window;
@@ -331,7 +439,10 @@ export class PeeklingRuntime implements PeeklingInstance {
       );
     this.#document = document;
     this.#window = window;
+    this.#pathSampler = new SvgPathSampler(document);
     this.#options = options;
+    this.#indicator = options.indicator;
+    this.#rendererFactory = rendererFactory;
     this.#now = window.performance?.now?.bind(window.performance) ?? Date.now;
     this.#instanceId = `instance:${Math.floor(this.#now())}:${Math.random().toString(36).slice(2, 8)}`;
     this.#diagnostics = new DiagnosticChannel({
@@ -472,6 +583,32 @@ export class PeeklingRuntime implements PeeklingInstance {
     this.#notice("lifecycle.resumed", "info", "lifecycle");
   }
 
+  refreshTargets(): void {
+    this.#targets?.refresh();
+  }
+
+  setIndicator(indicator: PeeklingIndicator | null): void {
+    if (this.#destroyed) return;
+    this.#indicator = checkedIndicator(indicator);
+    this.#interactionController?.updateIndicator(this.#indicator);
+  }
+
+  setContentVisible(visible: boolean): boolean {
+    if (this.#destroyed || !this.#contentRenderer) return false;
+    const expanded = this.#contentRenderer.setUserHidden(!visible);
+    this.#interactionController?.setExpanded(expanded);
+    this.#wake();
+    return expanded;
+  }
+
+  toggleContent(): boolean {
+    if (this.#destroyed || !this.#contentRenderer) return false;
+    const expanded = this.#contentRenderer.toggleUserHidden();
+    this.#interactionController?.setExpanded(expanded);
+    this.#wake();
+    return expanded;
+  }
+
   destroy(): void {
     this.#destroy("destroyed");
   }
@@ -486,7 +623,9 @@ export class PeeklingRuntime implements PeeklingInstance {
     this.#input?.destroy();
     this.#plan?.reset();
     this.#sections?.destroy();
+    this.#targets?.destroy();
     this.#contentRenderer?.destroy();
+    this.#interactionController?.destroy();
     this.#renderer?.destroy();
     this.#unregisterVisibility?.();
     this.#unregisterVisibility = undefined;
@@ -518,10 +657,20 @@ export class PeeklingRuntime implements PeeklingInstance {
     try {
       const validateSelector = (selector: string) =>
         browserSelectorIsValid(this.#document, selector);
+      const targetIds = new Set(Object.keys(this.#options.targets ?? {}));
+      for (const selector of Object.values(this.#options.targets ?? {})) {
+        if (!validateSelector(selector)) {
+          throw new TypeError(
+            runtimeMessage("target.selector", "Target selector is invalid"),
+          );
+        }
+      }
       if (this.#options.plan !== undefined) {
         compilePlan(this.#options.plan, {
           contentIds: new Set(Object.keys(this.#content)),
+          targets: targetIds,
           validateSelector,
+          validatePath: (path) => this.#pathSampler.validate(path),
         });
       }
       const browserWindow = this.#window as Window & typeof globalThis;
@@ -606,12 +755,15 @@ export class PeeklingRuntime implements PeeklingInstance {
         locomotion ? ["locomotion"] : [],
       );
       const compiled = compilePlan(
-        this.#options.plan ?? createDefaultPlan(locomotion),
+        this.#options.plan ??
+          createPresetPlan(this.#options.preset ?? "companion", locomotion),
         {
           states: new Set(Object.keys(loaded.content.states)),
           capabilities,
           contentIds: new Set(Object.keys(this.#content)),
+          targets: targetIds,
           validateSelector,
+          validatePath: (path) => this.#pathSampler.validate(path),
         },
       );
       this.#plan = new PlanRuntime(compiled);
@@ -620,6 +772,8 @@ export class PeeklingRuntime implements PeeklingInstance {
           states: new Set(Object.keys(loaded.content.states)),
           capabilities,
           contentIds: new Set(Object.keys(this.#content)),
+          targets: targetIds,
+          validatePath: (path) => this.#pathSampler.validate(path),
         },
         this.#now,
         (message) =>
@@ -652,24 +806,60 @@ export class PeeklingRuntime implements PeeklingInstance {
         (loaded.content.atlas.logicalHeight ??
           loaded.content.atlas.cellHeight) * scale,
       );
-      this.#renderer = new AtlasRenderer(
-        this.#document,
-        loaded.content,
-        loaded.atlasObjectUrl,
+      this.#renderer = this.#rendererFactory({
+        document: this.#document,
+        pack: loaded.content,
+        atlasUrl: loaded.atlasObjectUrl,
         scale,
-        this.#styles,
-      );
+        styles: this.#styles,
+      });
       if (
         Object.keys(this.#content).length ||
         this.#displayName !== undefined
       ) {
         this.#ensureContentRenderer();
       }
+      if (this.#options.interaction !== false) {
+        const interaction = this.#options.interaction ?? {};
+        const pressAction =
+          interaction.press ??
+          (interaction.pressEvent ? "emit" : "toggle-content");
+        const controlsContent =
+          Boolean(this.#contentRenderer) &&
+          (pressAction === "toggle-content" ||
+            pressAction === "show-content" ||
+            pressAction === "hide-content");
+        if (interaction.contentInitiallyHidden) {
+          this.#contentRenderer?.setUserHidden(true);
+        }
+        this.#interactionController = new CharacterInteractionController({
+          document: this.#document,
+          styles: this.#styles,
+          label:
+            interaction.label ??
+            `Interact with ${loaded.content.displayName || "Peekling"}`,
+          draggable: interaction.drag !== false,
+          ...(controlsContent
+            ? { expanded: !interaction.contentInitiallyHidden }
+            : {}),
+          ...(this.#indicator ? { indicator: this.#indicator } : {}),
+          onPress: () => this.#handleCharacterPress(),
+          onDragStart: () => this.#startCharacterDrag(),
+          onDragMove: (position, velocity) =>
+            this.#moveCharacterDrag(position, velocity),
+          onDragEnd: (velocity, moved, pointer) =>
+            this.#endCharacterDrag(velocity, moved, pointer),
+        });
+        if (interaction.contentInitiallyHidden) {
+          this.#interactionController.setExpanded(false);
+        }
+      }
       try {
         await Promise.all([
           this.#visibilityReady,
           this.#renderer.ready,
           this.#contentRenderer?.ready,
+          this.#interactionController?.ready,
         ]);
       } catch (cause) {
         this.#diagnoseStyleFailure(cause);
@@ -677,6 +867,14 @@ export class PeeklingRuntime implements PeeklingInstance {
       }
       const requirements = compiledPlanSectionRequirements(compiled);
       this.#createInput();
+      if (targetIds.size) {
+        this.#targets = new TargetTracker(
+          this.#document,
+          this.#window,
+          this.#options.targets!,
+          () => this.#wake(),
+        );
+      }
       if (requirements.selectors.length) {
         this.#sections = new SectionTracker(
           this.#document,
@@ -689,6 +887,7 @@ export class PeeklingRuntime implements PeeklingInstance {
         );
       }
       this.#renderer.setHidden(this.#siteHidden);
+      this.#interactionController?.setHidden(this.#siteHidden);
       if (this.#suspensions) {
         this.#input?.setSuspended(true);
         this.#sections?.setSuspended(true);
@@ -762,6 +961,151 @@ export class PeeklingRuntime implements PeeklingInstance {
       styles: this.#styles,
     });
     return this.#contentRenderer;
+  }
+
+  #handleCharacterPress(): void {
+    if (this.#destroyed) return;
+    const interaction = this.#options.interaction || {};
+    if (interaction.clearIndicatorOnPress === true && this.#indicator) {
+      this.setIndicator(null);
+    }
+    const action =
+      interaction.press ?? (interaction.pressEvent ? "emit" : "toggle-content");
+    if (action === "emit") {
+      if (interaction.pressEvent) this.emit(interaction.pressEvent);
+      return;
+    }
+    if (action === "none") return;
+    if (action === "show-content") this.setContentVisible(true);
+    else if (action === "hide-content") this.setContentVisible(false);
+    else this.toggleContent();
+  }
+
+  #startCharacterDrag(): void {
+    if (this.#destroyed || this.#siteHidden) return;
+    this.#dragging = true;
+    this.#throwing = false;
+    this.#landUntil = 0;
+    this.#throwVelocity = { x: 0, y: 0 };
+    this.#wake();
+  }
+
+  #moveCharacterDrag(
+    position: Readonly<Point>,
+    velocity: Readonly<Point>,
+  ): void {
+    if (!this.#dragging || this.#destroyed) return;
+    const size = this.#characterSize();
+    this.#position = size
+      ? clampPosition(
+          position,
+          { width: this.#window.innerWidth, height: this.#window.innerHeight },
+          size.width,
+          size.height,
+        )
+      : { ...position };
+    this.#throwVelocity = { ...velocity };
+    this.#wake();
+  }
+
+  #endCharacterDrag(
+    velocity: Readonly<Point>,
+    moved: boolean,
+    pointer: Readonly<Point>,
+  ): void {
+    if (!this.#dragging || this.#destroyed) return;
+    this.#dragging = false;
+    if (!moved) {
+      this.#throwVelocity = { x: 0, y: 0 };
+      this.#wake();
+      return;
+    }
+    const interaction = this.#options.interaction || {};
+    if (
+      interaction.catchTarget &&
+      this.#targets?.contains(
+        interaction.catchTarget,
+        pointer,
+        interaction.catchMargin ?? 24,
+      ) &&
+      this.#catchCharacter(interaction.catchTarget)
+    ) {
+      return;
+    }
+    if (this.#reducedMotion) {
+      this.#landCharacter();
+      return;
+    }
+    if (interaction.throw === false) {
+      this.#throwVelocity = { x: 0, y: 0 };
+      this.#wake();
+      return;
+    }
+    const maximum = interaction.maxThrowSpeed ?? DEFAULT_THROW_SPEED;
+    const magnitude = Math.hypot(velocity.x, velocity.y);
+    const factor = magnitude > maximum && magnitude ? maximum / magnitude : 1;
+    this.#throwVelocity = {
+      x: velocity.x * factor,
+      y: velocity.y * factor,
+    };
+    this.#throwing = true;
+    this.#wake();
+  }
+
+  #characterSize(): { width: number; height: number } | undefined {
+    const loaded = this.#loaded?.content;
+    if (!loaded) return;
+    const scale = this.#options.scale ?? loaded.defaultScale;
+    return {
+      width: (loaded.atlas.logicalWidth ?? loaded.atlas.cellWidth) * scale,
+      height: (loaded.atlas.logicalHeight ?? loaded.atlas.cellHeight) * scale,
+    };
+  }
+
+  #landCharacter(): void {
+    const size = this.#characterSize();
+    if (size) {
+      const floorInset =
+        (this.#options.interaction || {}).floorInset ?? DEFAULT_FLOOR_INSET;
+      this.#position = clampPosition(
+        {
+          x: this.#position.x,
+          y: this.#window.innerHeight - size.height / 2 - floorInset,
+        },
+        { width: this.#window.innerWidth, height: this.#window.innerHeight },
+        size.width,
+        size.height,
+      );
+    }
+    this.#dragging = false;
+    this.#throwing = false;
+    this.#throwVelocity = { x: 0, y: 0 };
+    this.#landUntil = this.#now() + 360;
+    this.#wake();
+  }
+
+  #catchCharacter(targetId: string): boolean {
+    const target = this.#targets?.snapshot(true)[targetId];
+    const size = this.#characterSize();
+    if (!target || !size) return false;
+    const interaction = this.#options.interaction || {};
+    const point = characterTargetPoint(
+      target,
+      interaction.catchAnchor ?? "center",
+      size,
+    );
+    this.#position = clampPosition(
+      point,
+      { width: this.#window.innerWidth, height: this.#window.innerHeight },
+      size.width,
+      size.height,
+    );
+    this.#throwing = false;
+    this.#throwVelocity = { x: 0, y: 0 };
+    this.#landUntil = this.#now() + 360;
+    if (interaction.catchEvent) this.emit(interaction.catchEvent);
+    this.#wake();
+    return true;
   }
 
   #diagnose(
@@ -873,6 +1217,7 @@ export class PeeklingRuntime implements PeeklingInstance {
     if (hidden === this.#siteHidden) return;
     this.#siteHidden = hidden;
     this.#renderer?.setHidden(hidden);
+    this.#interactionController?.setHidden(hidden);
     if (this.#destroyed) return;
     if (hidden && this.#contentRenderer) {
       this.#contentRenderer.renderSurfaces(
@@ -888,6 +1233,9 @@ export class PeeklingRuntime implements PeeklingInstance {
       if (this.#destroyed) return;
     }
     if (hidden) {
+      this.#dragging = false;
+      this.#throwing = false;
+      this.#throwVelocity = { x: 0, y: 0 };
       this.#overrides?.clear("dismissed");
       this.#setSuspended(SUSPEND_SITE, true);
       this.#notice("lifecycle.dismissed", "info", "lifecycle");
@@ -1026,8 +1374,13 @@ export class PeeklingRuntime implements PeeklingInstance {
       .upgrade(required)
       .then((changed) => {
         if (changed && !this.#destroyed && this.#loaded === loaded) {
-          this.#renderer?.swapAtlas(loaded.content, loaded.atlasObjectUrl);
-          this.#wake();
+          const renderer = this.#renderer;
+          if (!renderer) return;
+          return Promise.resolve(
+            renderer.swapAtlas(loaded.content, loaded.atlasObjectUrl),
+          ).then(() => {
+            if (!this.#destroyed && this.#loaded === loaded) this.#wake();
+          });
         }
       })
       .catch((error) => {
@@ -1124,10 +1477,14 @@ export class PeeklingRuntime implements PeeklingInstance {
       pointer: input.pointer,
       position: this.#position,
       viewport,
+      characterSize,
       lastActivityAt: input.lastActivityAt,
       reducedMotion: this.#reducedMotion,
       pageVisible: !this.#document.hidden,
       sections,
+      targets: this.#targets?.snapshot(this.#trackTargets),
+      samplePath: (path: string, progress: number) =>
+        this.#pathSampler.sample(path, progress),
       reaction,
     } as World;
     return {
@@ -1154,10 +1511,28 @@ export class PeeklingRuntime implements PeeklingInstance {
       overrides.observeEvent(reaction.name, reaction.source);
     }
     const request = overrides.compose(ordinary, world);
+    this.#trackTargets = request.motion?.trackTarget === true;
     if (this.#reducedMotion) {
       delete request.motion;
       if (request.capability === "locomotion") delete request.capability;
       if (!request.state) request.state = "idle";
+    }
+    const interaction = this.#options.interaction || {};
+    if (this.#dragging) {
+      delete request.motion;
+      delete request.capability;
+      request.state = interaction.dragState ?? "scroll:fly";
+    } else if (this.#throwing) {
+      delete request.motion;
+      delete request.capability;
+      request.state =
+        this.#throwVelocity.y < 0
+          ? (interaction.riseState ?? "scroll:fly")
+          : (interaction.fallState ?? "scroll:fall");
+    } else if (this.#landUntil > world.now) {
+      delete request.motion;
+      delete request.capability;
+      request.state = interaction.landState ?? "success";
     }
     const diagnostics: FrameEventDiagnostic[] = [];
     if (reaction) {
@@ -1226,6 +1601,55 @@ export class PeeklingRuntime implements PeeklingInstance {
     return this.#frameActive(frame);
   }
 
+  #advanceThrow(snapshot: FrameSnapshot): void {
+    if (!this.#throwing) return;
+    const interaction = this.#options.interaction || {};
+    const dt = snapshot.frame.stepMs / 1_000;
+    const bounce = interaction.bounce ?? DEFAULT_BOUNCE;
+    const halfWidth = snapshot.characterSize.width / 2;
+    const halfHeight = snapshot.characterSize.height / 2;
+    const floor =
+      snapshot.world.viewport.height -
+      halfHeight -
+      (interaction.floorInset ?? DEFAULT_FLOOR_INSET);
+    let velocityX = this.#throwVelocity.x;
+    let velocityY =
+      this.#throwVelocity.y + (interaction.gravity ?? DEFAULT_GRAVITY) * dt;
+    let x = this.#position.x + velocityX * dt;
+    let y = this.#position.y + velocityY * dt;
+    const right = snapshot.world.viewport.width - halfWidth;
+    if (x < halfWidth) {
+      x = halfWidth;
+      velocityX = Math.abs(velocityX) * bounce;
+    } else if (x > right) {
+      x = right;
+      velocityX = -Math.abs(velocityX) * bounce;
+    }
+    if (y < halfHeight) {
+      y = halfHeight;
+      velocityY = Math.abs(velocityY) * bounce;
+    }
+    const next = { x, y };
+    if (
+      interaction.catchTarget &&
+      this.#targets?.contains(
+        interaction.catchTarget,
+        next,
+        interaction.catchMargin ?? 24,
+      ) &&
+      this.#catchCharacter(interaction.catchTarget)
+    ) {
+      return;
+    }
+    if (y >= floor) {
+      this.#position = { x, y: floor };
+      this.#landCharacter();
+      return;
+    }
+    this.#position = next;
+    this.#throwVelocity = { x: velocityX * 0.995, y: velocityY };
+  }
+
   #calculatePresentation(
     snapshot: FrameSnapshot,
     evaluation: FrameEvaluation,
@@ -1235,6 +1659,7 @@ export class PeeklingRuntime implements PeeklingInstance {
     const loaded = frame.loaded.content;
     if (!this.#reducedMotion)
       this.#animationClock += Math.max(0, frame.elapsed);
+    this.#advanceThrow(snapshot);
     const requested =
       request.capability === "locomotion" && request.motion
         ? loaded.directionalStates?.[
@@ -1246,7 +1671,21 @@ export class PeeklingRuntime implements PeeklingInstance {
         : resolveCapabilityName(request.state, loaded);
     const resolved = resolveState(requested, loaded.states);
     let lift = 0;
-    if (request.motion) {
+    if (request.motion?.direct) {
+      const distance = request.motion.maxDistance ?? 0;
+      this.#position = clampPosition(
+        {
+          x: this.#position.x + request.motion.x * distance,
+          y: this.#position.y + request.motion.y * distance,
+        },
+        world.viewport,
+        characterSize.width,
+        characterSize.height,
+      );
+      lift = request.motion.lift ?? 0;
+      this.#locomotionState = "";
+      this.#locomotionElapsed = 0;
+    } else if (request.motion) {
       if (this.#locomotionState !== resolved.name) {
         this.#locomotionState = resolved.name;
         this.#locomotionElapsed = 0;
@@ -1279,8 +1718,9 @@ export class PeeklingRuntime implements PeeklingInstance {
         characterSize.height,
       );
       lift =
+        request.motion.lift ??
         locomotionSample(loaded.locomotionMotion, nextCycles).lift *
-        characterSize.height;
+          characterSize.height;
     } else {
       this.#locomotionState = "";
       this.#locomotionElapsed = 0;
@@ -1315,11 +1755,20 @@ export class PeeklingRuntime implements PeeklingInstance {
       presentation.lift,
     );
     if (!this.#frameActive(frame)) return;
+    this.#interactionController?.render(
+      this.#position,
+      snapshot.characterSize,
+      presentation.lift,
+    );
+    if (!this.#frameActive(frame)) return;
     this.#lastTick = frame.now;
     this.#schedulePlan(frame);
     if (
       this.#frameActive(frame) &&
-      (evaluation.request.motion || frame.input.reaction)
+      (evaluation.request.motion ||
+        frame.input.reaction ||
+        this.#throwing ||
+        this.#dragging)
     )
       this.#wake();
   }
@@ -1423,4 +1872,27 @@ function clampPosition(
     x: Math.max(width / 2, Math.min(viewport.width - width / 2, point.x)),
     y: Math.max(height / 2, Math.min(viewport.height - height / 2, point.y)),
   };
+}
+
+function characterTargetPoint(
+  target: Readonly<TargetSnapshot>,
+  anchor: TargetAnchor,
+  character: Readonly<{ width: number; height: number }>,
+): Point {
+  const center = {
+    x: target.left + target.width / 2,
+    y: target.top + target.height / 2,
+  };
+  switch (anchor) {
+    case "top":
+      return { x: center.x, y: target.top - character.height / 2 };
+    case "right":
+      return { x: target.right + character.width / 2, y: center.y };
+    case "bottom":
+      return { x: center.x, y: target.bottom + character.height / 2 };
+    case "left":
+      return { x: target.left - character.width / 2, y: center.y };
+    default:
+      return center;
+  }
 }

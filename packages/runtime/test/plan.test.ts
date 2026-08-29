@@ -463,6 +463,48 @@ test("host surfaces receive immutable data and update without remounting", async
   assert.equal(calls.at(-1)?.kind, "cleanup");
 });
 
+test("showing user-hidden content remeasures its surfaces before placement", async () => {
+  const body = new ElementFixtureForMount("body");
+  const document = createMountDocument(body);
+  let wakes = 0;
+  const renderer = new ContentRenderer(document, {
+    wake: () => {
+      wakes += 1;
+    },
+  });
+  await renderer.ready;
+  const content = validateHostContent(
+    { review: { "top-center": "Review ready" } },
+    "https://site.example/",
+  );
+  const selections = [
+    { id: "review", contentId: "review", key: "review:ready" },
+  ];
+  const geometry = [
+    { x: 470, y: 370 },
+    { width: 500, height: 400 },
+    { width: 64, height: 64 },
+  ] as const;
+
+  renderer.renderSurfaces(selections, content, ...geometry);
+  const surface = body
+    .descendants()
+    .find((element) => element.className.includes("surface"));
+  assert.ok(surface);
+  const readsBeforeHide = surface.rectReads;
+
+  renderer.setUserHidden(true);
+  renderer.setUserHidden(false);
+  assert.equal(wakes, 1, "revealing content schedules one placement pass");
+  renderer.renderSurfaces(selections, content, ...geometry);
+
+  assert.ok(
+    surface.rectReads > readsBeforeHide,
+    "revealed content is measured at its visible dimensions",
+  );
+  renderer.destroy();
+});
+
 test("an active mount root is restored after deletion or same-document reparenting", async () => {
   const body = new ElementFixtureForMount("body");
   const document = createMountDocument(body);

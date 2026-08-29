@@ -43,6 +43,129 @@ test("a minimal pointer-follow Plan compiles to immutable channel ownership", ()
   assert.ok(Object.isFrozen(compiled.rules[0]!.effect));
 });
 
+test("horizontal patrol compiles as a bounded immutable motion effect", () => {
+  const compiled = compilePlan(
+    {
+      baseline: {
+        channels: ["motion", "state"],
+        motion: {
+          type: "horizontal-patrol",
+          speed: 240,
+          edgeInset: 24,
+        },
+        state: { capability: "locomotion" },
+      },
+    },
+    context,
+  );
+
+  assert.deepEqual(compiled.baseline.motion, {
+    type: "horizontal-patrol",
+    speed: 240,
+    edgeInset: 24,
+  });
+  assert.ok(Object.isFrozen(compiled.baseline.motion));
+});
+
+test("horizontal patrol rejects out-of-range and mode-specific fields", () => {
+  const invalidMotions = [
+    { type: "horizontal-patrol", speed: 0 },
+    { type: "horizontal-patrol", speed: 1_001 },
+    { type: "horizontal-patrol", edgeInset: -1 },
+    { type: "horizontal-patrol", edgeInset: 1_001 },
+    { type: "horizontal-patrol", bottomOffset: 10 },
+    { type: "horizontal-patrol", arrivalRadius: 10 },
+  ] as const;
+
+  for (const motion of invalidMotions) {
+    assert.throws(() =>
+      compilePlan(
+        {
+          baseline: {
+            channels: ["motion", "state"],
+            motion,
+            state: { capability: "locomotion" },
+          },
+        } as never,
+        context,
+      ),
+    );
+  }
+});
+
+test("0.1.1 motion types compile through one closed Plan union", () => {
+  const motions = [
+    { type: "viewport-traverse", speed: 180, edgeInset: 16, clockwise: false },
+    { type: "move-to", x: 240, y: 180, speed: 200, arrivalRadius: 8 },
+    {
+      type: "move-to-target",
+      target: "sunlit-nook",
+      anchor: "top",
+      speed: 220,
+      arrivalRadius: 6,
+    },
+    { type: "jump-to", x: 320, y: 220, duration: 900, height: 120 },
+    {
+      type: "svg-path",
+      path: "M0 0 C20 -40 80 40 100 0",
+      duration: 2_000,
+      loop: false,
+      relative: true,
+    },
+  ] as const;
+  const compileContext = {
+    ...context,
+    targets: new Set(["sunlit-nook"]),
+    validatePath: (path: string) => path.startsWith("M0 0"),
+  };
+
+  for (const motion of motions) {
+    const compiled = compilePlan(
+      {
+        baseline: {
+          channels: ["motion", "state"],
+          motion,
+          state: { capability: "locomotion" },
+        },
+      },
+      compileContext,
+    );
+    assert.deepEqual(compiled.baseline.motion, motion);
+    assert.ok(Object.isFrozen(compiled.baseline.motion));
+  }
+});
+
+test("target and SVG motion fail closed before evaluation", () => {
+  assert.throws(
+    () =>
+      compilePlan(
+        {
+          baseline: {
+            channels: ["motion", "state"],
+            motion: { type: "move-to-target", target: "missing" },
+            state: { capability: "locomotion" },
+          },
+        },
+        { ...context, targets: new Set(["sunlit-nook"]) },
+      ),
+    /unknown target missing/,
+  );
+  assert.throws(
+    () =>
+      compilePlan(
+        {
+          baseline: {
+            channels: ["motion", "state"],
+            motion: { type: "svg-path", path: "invalid" },
+            state: { capability: "locomotion" },
+          },
+        },
+        { ...context, validatePath: () => false },
+      ),
+    /valid SVG path data/,
+  );
+});
+
 test("application coalescing is explicit, ordered, and consistent per Event", () => {
   const compiled = compilePlan(
     {

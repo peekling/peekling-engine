@@ -1,6 +1,6 @@
 # Peekling engine design
 
-Status: implemented contract for version `0.1.0`. Tests and release gates verify
+Status: implemented contract for version `0.1.1`. Tests and release gates verify
 the behavior described here on their recorded environments. Release evidence is
 valid only when it is bound to exact source and artifacts. See
 [Releasing Peekling packages](docs/RELEASING.md) for that procedure.

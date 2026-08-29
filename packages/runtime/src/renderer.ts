@@ -7,6 +7,33 @@ import {
   type RuntimeStyleAsset,
 } from "./styles.js";
 
+export interface CharacterRenderer {
+  readonly ready: Promise<void>;
+  swapAtlas(pack: NormalizedPack, atlasUrl: string): void | Promise<void>;
+  setHidden(hidden: boolean): void;
+  nextFrameIn(now: number): number | undefined;
+  render(
+    stateName: string,
+    now: number,
+    position: Point,
+    devicePixelRatio?: number,
+    lift?: number,
+  ): void;
+  destroy(): void;
+}
+
+export interface CharacterRendererOptions {
+  document: Document;
+  pack: NormalizedPack;
+  atlasUrl: string;
+  scale: number;
+  styles: RuntimeStyleAsset;
+}
+
+export type CharacterRendererFactory = (
+  options: Readonly<CharacterRendererOptions>,
+) => CharacterRenderer;
+
 export function frameAt(state: StateDefinition, elapsed: number): number {
   if (state.frames.length === 1) return state.frames[0]!;
   if (state.durations?.length === state.frames.length) {
@@ -35,7 +62,7 @@ export function snapToDevicePixel(value: number, devicePixelRatio = 1): number {
   return Math.round(value * safeDpr) / safeDpr;
 }
 
-export class AtlasRenderer {
+export class AtlasRenderer implements CharacterRenderer {
   readonly host: HTMLElement;
   readonly ready: Promise<void>;
   readonly #document: Document;
@@ -214,3 +241,12 @@ export class AtlasRenderer {
       this.host.setAttribute("aria-hidden", "true");
   }
 }
+
+export const createAtlasRenderer: CharacterRendererFactory = (options) =>
+  new AtlasRenderer(
+    options.document,
+    options.pack,
+    options.atlasUrl,
+    options.scale,
+    options.styles,
+  );

@@ -37,7 +37,9 @@ export interface PlanCompileContext {
   states?: ReadonlySet<string>;
   capabilities?: ReadonlySet<PlanCapability>;
   contentIds?: ReadonlySet<string>;
+  targets?: ReadonlySet<string>;
   validateSelector?: (selector: string) => boolean;
+  validatePath?: (path: string) => boolean;
 }
 
 export interface CompiledPlanStateSelection {
@@ -591,7 +593,7 @@ function compileEffect(
   const motion =
     input.motion === undefined
       ? undefined
-      : compileMotion(input.motion, `${path}.motion`);
+      : compileMotion(input.motion, `${path}.motion`, context);
   const surfaces = input.surfaces === undefined ? [] : input.surfaces;
   if (!Array.isArray(surfaces) || surfaces.length > SURFACE_LIMIT) {
     fail(
@@ -786,21 +788,93 @@ function compileState(
 function compileMotion(
   input: PlanMotionEffect,
   path: string,
+  context: PlanCompileContext,
 ): Readonly<PlanMotionEffect> {
   object(input, path);
-  closed(input, ["type", "speed", "arrivalRadius"], path);
-  if (input.type !== "follow-pointer") {
-    fail("invalid-motion", `${path}.type`, "must be follow-pointer");
+  switch (input.type) {
+    case "follow-pointer":
+      closed(input, ["type", "speed", "arrivalRadius"], path);
+      bounded(input.speed, `${path}.speed`, 1, 1_000);
+      bounded(input.arrivalRadius, `${path}.arrivalRadius`, 0, 1_000);
+      break;
+    case "horizontal-patrol":
+      closed(input, ["type", "speed", "edgeInset"], path);
+      bounded(input.speed, `${path}.speed`, 1, 1_000);
+      bounded(input.edgeInset, `${path}.edgeInset`, 0, 1_000);
+      break;
+    case "viewport-traverse":
+      closed(input, ["type", "speed", "edgeInset", "clockwise"], path);
+      bounded(input.speed, `${path}.speed`, 1, 1_000);
+      bounded(input.edgeInset, `${path}.edgeInset`, 0, 1_000);
+      if (
+        input.clockwise !== undefined &&
+        typeof input.clockwise !== "boolean"
+      ) {
+        fail("invalid-motion", `${path}.clockwise`, "must be boolean");
+      }
+      break;
+    case "move-to":
+      closed(input, ["type", "x", "y", "speed", "arrivalRadius"], path);
+      bounded(input.x, `${path}.x`, -100_000, 100_000);
+      bounded(input.y, `${path}.y`, -100_000, 100_000);
+      bounded(input.speed, `${path}.speed`, 1, 1_000);
+      bounded(input.arrivalRadius, `${path}.arrivalRadius`, 0, 1_000);
+      break;
+    case "move-to-target":
+      closed(
+        input,
+        ["type", "target", "anchor", "speed", "arrivalRadius"],
+        path,
+      );
+      id(input.target, `${path}.target`, "Target");
+      if (context.targets && !context.targets.has(input.target)) {
+        fail(
+          "unknown-target",
+          `${path}.target`,
+          `references unknown target ${input.target}`,
+        );
+      }
+      if (
+        input.anchor !== undefined &&
+        !["center", "top", "right", "bottom", "left"].includes(input.anchor)
+      ) {
+        fail("invalid-motion", `${path}.anchor`, "is not supported");
+      }
+      bounded(input.speed, `${path}.speed`, 1, 1_000);
+      bounded(input.arrivalRadius, `${path}.arrivalRadius`, 0, 1_000);
+      break;
+    case "jump-to":
+      closed(input, ["type", "x", "y", "duration", "height"], path);
+      bounded(input.x, `${path}.x`, -100_000, 100_000);
+      bounded(input.y, `${path}.y`, -100_000, 100_000);
+      bounded(input.duration, `${path}.duration`, 100, 10_000);
+      bounded(input.height, `${path}.height`, 0, 2_000);
+      break;
+    case "svg-path": {
+      closed(input, ["type", "path", "duration", "loop", "relative"], path);
+      if (
+        typeof input.path !== "string" ||
+        input.path.length < 1 ||
+        input.path.length > 4_096 ||
+        /[\0\r\n]/.test(input.path)
+      ) {
+        fail("invalid-path", `${path}.path`, "must be bounded SVG path data");
+      }
+      if (context.validatePath && !context.validatePath(input.path)) {
+        fail("invalid-path", `${path}.path`, "must be valid SVG path data");
+      }
+      bounded(input.duration, `${path}.duration`, 100, 60_000);
+      for (const field of ["loop", "relative"] as const) {
+        if (input[field] !== undefined && typeof input[field] !== "boolean") {
+          fail("invalid-motion", `${path}.${field}`, "must be boolean");
+        }
+      }
+      break;
+    }
+    default:
+      fail("invalid-motion", `${path}.type`, "is not a supported motion type");
   }
-  bounded(input.speed, `${path}.speed`, 1, 1_000);
-  bounded(input.arrivalRadius, `${path}.arrivalRadius`, 0, 1_000);
-  return freeze({
-    type: "follow-pointer",
-    ...(input.speed === undefined ? {} : { speed: input.speed }),
-    ...(input.arrivalRadius === undefined
-      ? {}
-      : { arrivalRadius: input.arrivalRadius }),
-  });
+  return freeze({ ...input });
 }
 
 function compileSurface(

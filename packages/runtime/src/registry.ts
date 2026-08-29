@@ -6,11 +6,11 @@ declare const __PEEK_PACK_SHA256__: string;
 const PEEK_REFERENCE_URL =
   typeof __PEEK_PACK_URL__ === "string"
     ? __PEEK_PACK_URL__
-    : "https://cdn.jsdelivr.net/npm/@peekling/pack-peek@0.1.0/character.json";
+    : "https://cdn.jsdelivr.net/npm/@peekling/pack-peek@0.1.1/character.json";
 const PEEK_REFERENCE_SHA256 =
   typeof __PEEK_PACK_SHA256__ === "string"
     ? __PEEK_PACK_SHA256__
-    : "bc01840e84f72edca4b0421dca4d07623b38d971d851bfc647e1cada03e1cbcc";
+    : "9a2e2a41e85f7c4b8d3487a3655db40872675bd9c0780e139a946eabdf71d75f";
 
 interface CharacterPackReference {
   readonly url: string;

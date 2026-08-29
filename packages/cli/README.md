@@ -15,7 +15,7 @@ These commands run in Node and stay out of the browser runtime.
 Install the CLI as a development dependency:
 
 ```sh
-npm install --save-dev @peekling/cli@0.1.0
+npm install --save-dev @peekling/cli@0.1.1
 ```
 
 Run it through `npx` so the project-local version is used:
@@ -137,7 +137,7 @@ A minimal row-sheet `source.json` looks like this:
 {
   "format": 1,
   "name": "my-character",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "license": "CC-BY-4.0",
   "metadata": {
     "description": "A small companion for the example application."
@@ -192,7 +192,7 @@ npx peekling validate ./my-character
 A successful result reports the exact Pack identity and measured atlas:
 
 ```text
-Valid my-character@0.1.0: 1 states, 512x64 atlas (1234 bytes)
+Valid my-character@0.1.1: 1 states, 512x64 atlas (1234 bytes)
 ```
 
 The dimensions and byte count above are illustrative. The command prints the

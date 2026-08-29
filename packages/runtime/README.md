@@ -10,7 +10,7 @@ data cannot contain code, callbacks, DOM nodes, or raw HTML.
 ## Install
 
 ```sh
-npm install @peekling/runtime@0.1.0
+npm install @peekling/runtime@0.1.1
 ```
 
 The runtime supports modern ESM applications and the complete browser bundle.
@@ -47,6 +47,11 @@ export function destroyPeekling() {
 After `ready` resolves, the Pack, stylesheet, initial State, and owned DOM are
 ready. `character: "peek"` is a networked selection. It resolves an exact pinned
 manifest and verifies the manifest and selected atlas before browser decoding.
+
+The default `companion` behavior follows the pointer when the Pack provides
+locomotion. The character can also be dragged and thrown. Clicking the character
+shows or hides its owned content bubble. Set `interaction: false` only when the
+host needs a pointer-transparent character with no direct control.
 
 Other bundlers can copy `@peekling/runtime/peekling.css` to a public asset and
 pass its final URL through `styles.url`. An HTTP or HTTPS ESM module can omit
@@ -85,6 +90,8 @@ mirrored asset.
 | `override(input)`     | Request temporary ownership of declared presentation channels.                                              |
 | `pause()`             | Add the host pause reason and park runtime work.                                                            |
 | `resume()`            | Remove the host pause reason. Work resumes after every suspension reason clears.                            |
+| `refreshTargets()`    | Refresh host-approved target geometry after an application-specific layout change.                          |
+| `setIndicator(value)` | Replace the accessible dot or count notification, including its optional color. Pass `null` to clear it.    |
 | `destroy()`           | Abort pending work and release the instance's listeners, observers, frames, timers, roots, and object URLs. |
 
 Configuration failures that can be decided without Pack bytes throw before
@@ -138,6 +145,46 @@ The selected State must exist in the Pack. An Override never edits the Plan.
 When its lifetime ends, the runtime reevaluates the unchanged Plan from current
 world state.
 
+## Drag, throw, click, and custom routes
+
+Direct manipulation is enabled without adding Plan rules:
+
+```js
+const companion = hatch({
+  character: "peek",
+  interaction: {
+    gravity: 1800,
+    maxThrowSpeed: 1800,
+    bounce: 0.35,
+    label: "Open controls or drag Peek",
+  },
+});
+```
+
+Press actions can toggle, show, or hide content. They can also emit one bounded
+application Event. A drag suppresses its trailing click. Throw integration is
+time based, bounded to the viewport, and releases ownership back to the Plan
+after landing.
+
+Targets connect motion or catching to host-approved geometry. Custom SVG paths
+remain data and are sampled with detached browser geometry. See
+[Character interaction and motion](../../docs/interaction-and-motion.md) for a
+complete sunlit nook, viewport traversal, target catching, notification badge,
+and custom path examples.
+
+## Optional Canvas renderer
+
+Use the Canvas entry point when character frame presentation should use Canvas
+2D:
+
+```js
+import { hatchCanvas as hatch } from "@peekling/runtime/canvas";
+```
+
+Canvas uses the same Configuration, Pack, Plan, Event queue, interaction,
+physics, targets, and lifecycle as the default DOM renderer. Content bubbles
+remain DOM surfaces so native controls and accessibility keep working.
+
 See the repository [configuration guide](../../docs/configuration.md) for Plan
 syntax and recipes. The [execution model](../../docs/execution-model.md) defines
 Event ordering, channel ownership, Override conflicts, and cleanup.
@@ -150,14 +197,14 @@ free. The element is a lifecycle facade over hatch, not a second engine.
 ```html
 <script
   defer
-  src="https://cdn.jsdelivr.net/npm/@peekling/runtime@0.1.0/dist/peekling.min.js"
+  src="https://cdn.jsdelivr.net/npm/@peekling/runtime@0.1.1/dist/peekling.min.js"
   integrity="sha384-<runtime-release-hash>"
   crossorigin="anonymous"
 ></script>
 
 <peekling-character
   character="peek"
-  styles-url="https://cdn.jsdelivr.net/npm/@peekling/runtime@0.1.0/dist/peekling.css"
+  styles-url="https://cdn.jsdelivr.net/npm/@peekling/runtime@0.1.1/dist/peekling.css"
   styles-integrity="sha256-<stylesheet-release-hash>"
 ></peekling-character>
 ```
@@ -255,6 +302,7 @@ admission, use the repository
 | Import                           | Contents                                                                                                   |
 | -------------------------------- | ---------------------------------------------------------------------------------------------------------- |
 | `@peekling/runtime`              | Side-effect-free ESM hatch API, public types, visibility helpers, and explicit Web Component registration. |
+| `@peekling/runtime/canvas`       | Optional Canvas 2D character renderer using the same runtime contract.                                     |
 | `@peekling/runtime/browser`      | Complete browser-global artifact.                                                                          |
 | `@peekling/runtime/peekling.css` | Required runtime stylesheet asset.                                                                         |
 | `@peekling/runtime/pack`         | Supported Pack parsing and validation surface for authoring tools.                                         |
@@ -272,17 +320,20 @@ host surfaces, blocked stylesheets, suspension, dismissal recovery, remount
 cleanup, hostile host layout, root repair, and contained failures in Chromium,
 Firefox, and WebKit.
 
+The 0.1.1 record below measures the interaction and renderer release with the
+exact release toolchain and required reserve.
+
 <!-- peekling-size-evidence:start -->
 
-The recorded canonical delivery measurement is 32,287 bytes gzip and 28,635
-bytes Brotli. Against the 32 KiB gzip and 32 KiB Brotli caps, that recorded
-build leaves 481 bytes of gzip headroom and 4,133 bytes of Brotli headroom.
-After the required 256-byte reserve, 225 gzip bytes and 3,877 Brotli bytes
+The recorded canonical delivery measurement is 38,081 bytes gzip and 33,398
+bytes Brotli. Against the 40 KiB gzip and 40 KiB Brotli caps, that recorded
+build leaves 2,879 bytes of gzip headroom and 7,562 bytes of Brotli headroom.
+After the required 256-byte reserve, 2,623 gzip bytes and 7,306 Brotli bytes
 remain for that build.
 <!-- peekling-size-evidence:end -->
 
 The record is bound to artifact hashes. Node 22.14.0, npm 11.16.0, and Node's
-default zlib compression certify the recorded values. Other supported Node
+default zlib compression certify those recorded values. Other supported Node
 versions still enforce their local size cap and reserve.
 
 The [browser performance guide](../../docs/browser-performance.md) explains the

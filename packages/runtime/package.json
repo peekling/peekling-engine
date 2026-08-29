@@ -1,6 +1,6 @@
 {
   "name": "@peekling/runtime",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Dependency-free browser runtime for interactive Peekling characters",
   "license": "Apache-2.0",
   "author": {
@@ -57,6 +57,10 @@
     "./preflight": {
       "types": "./dist/preflight-api.d.ts",
       "import": "./dist/preflight-api.js"
+    },
+    "./canvas": {
+      "types": "./dist/canvas.d.ts",
+      "import": "./dist/canvas.js"
     },
     "./browser": "./dist/peekling.min.js",
     "./peekling.css": "./dist/peekling.css"
