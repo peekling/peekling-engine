@@ -8,13 +8,13 @@ plugin runs in Node and does not add code or assets to the browser bundle.
 
 - Node.js 22.14.0 or newer
 - Vite 8
-- `@peekling/runtime` 0.1.1 in the application
+- `@peekling/runtime` 0.1.2 in the application
 
 Install the runtime and the development plugin:
 
 ```sh
-npm install @peekling/runtime@0.1.1
-npm install --save-dev @peekling/vite@0.1.1
+npm install @peekling/runtime@0.1.2
+npm install --save-dev @peekling/vite@0.1.2
 ```
 
 Vite is a peer dependency. `@peekling/vite` depends on `@peekling/preflight`,

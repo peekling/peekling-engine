@@ -43,6 +43,8 @@
 }
 
 .peekling-character-hit {
+  -webkit-appearance: none;
+  appearance: none;
   position: absolute;
   margin: 0;
   padding: 0;
@@ -53,6 +55,9 @@
   pointer-events: auto;
   cursor: pointer;
   transform-origin: 0 0;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
 }
 
 .peekling-character-hit[data-peekling-draggable] {

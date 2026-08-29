@@ -8,13 +8,13 @@
   "artifacts": {
     "runtimePath": "packages/runtime/dist/peekling.min.js",
     "stylesheetPath": "packages/runtime/dist/peekling.css",
-    "runtimeBytes": 117486,
-    "stylesheetBytes": 3092,
-    "runtimeSha256": "5fbb9c22886d59d546daf58756bdaa6669d29a629e238bc67e5553e9e373598c",
-    "stylesheetSha256": "1b53e6a2adb3e3ea389930f6b8674fd2ceb3245241ed965b0e020694178562c3"
+    "runtimeBytes": 117503,
+    "stylesheetBytes": 3234,
+    "runtimeSha256": "5b88583691fc2780933b2f85e739ff44aedca0813846f9d326ba136bbb4d4a20",
+    "stylesheetSha256": "af83c829e6d99504dbd896877d089b42a4311da29c8b0957b5330312f0d350f6"
   },
   "compressed": {
-    "gzipBytes": 38081,
-    "brotliBytes": 33398
+    "gzipBytes": 38139,
+    "brotliBytes": 33418
   }
 }

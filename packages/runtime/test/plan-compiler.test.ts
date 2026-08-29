@@ -93,7 +93,7 @@ test("horizontal patrol rejects out-of-range and mode-specific fields", () => {
   }
 });
 
-test("0.1.1 motion types compile through one closed Plan union", () => {
+test("0.1.2 motion types compile through one closed Plan union", () => {
   const motions = [
     { type: "viewport-traverse", speed: 180, edgeInset: 16, clockwise: false },
     { type: "move-to", x: 240, y: 180, speed: 200, arrivalRadius: 8 },

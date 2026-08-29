@@ -2,6 +2,14 @@
 
 This file records changes by version.
 
+## 0.1.2
+
+- Removed the native mobile tap flash from the character interaction control.
+- Made canceled touch drags release into gravity without carrying an accidental
+  throw impulse.
+- Preserved the existing reduced-motion behavior and interaction defaults.
+- Kept the Plan contract, configuration schema, and public API unchanged.
+
 ## 0.1.1
 
 - Enabled accessible character press, drag, and throw interaction by default.

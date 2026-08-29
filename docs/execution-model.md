@@ -1,6 +1,6 @@
-# Peekling 0.1.1 execution model
+# Peekling 0.1.2 execution model
 
-> [!IMPORTANT] This is the implemented runtime contract for version `0.1.1`. The
+> [!IMPORTANT] This is the implemented runtime contract for version `0.1.2`. The
 > [configuration guide](configuration.md) is the task-oriented entry point.
 > Source, package, and publication checks live in the
 > [release guide](RELEASING.md).
@@ -95,7 +95,7 @@ Programmatic teardown settles `finished` with reason `destroyed`. Page end uses
 reason `pagehide`. The promise settles exactly once after cleanup even when
 teardown signals repeat.
 
-`0.1.1` does not serialize, persist, restore, or transfer Plan state, Event
+`0.1.2` does not serialize, persist, restore, or transfer Plan state, Event
 queues, Overrides, character position, content state, or runtime handles across
 pages. Application-owned data may be passed into the new page's Configuration or
 emitted as new Events, but that is a fresh instance with fresh validation.
@@ -577,7 +577,7 @@ the documented reason, and preserves host-page interaction.
 
 ## Strict CSP and host policy
 
-Strict Content Security Policy compatibility is a `0.1.1` release gate. Peekling
+Strict Content Security Policy compatibility is a `0.1.2` release gate. Peekling
 must not require `unsafe-inline` or `unsafe-eval`. It does not inject raw HTML
 or inline event attributes.
 

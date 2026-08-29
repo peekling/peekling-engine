@@ -19,9 +19,9 @@ export const REQUIRED_PERFORMANCE_SCENARIOS = Object.freeze([
 const EVENT_BURST_FACTS = 16;
 const REQUIRED_BROWSERS = Object.freeze(["chromium", "firefox", "webkit"]);
 export const RELEASE_PERFORMANCE_PROFILE = Object.freeze({
-  id: "release-0.1.1",
+  id: "release-0.1.2",
   contract: "peekling-browser-performance-v0.1",
-  purpose: "0.1.1 release acceptance",
+  purpose: "0.1.2 release acceptance",
   startupRepetitions: 40,
   warmupCount: 2,
   steadyFrameCount: 90,

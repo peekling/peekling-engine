@@ -230,13 +230,14 @@ export class CharacterInteractionController {
 
   #pointerCancel = (event: PointerEvent): void => {
     if (event.pointerId !== this.#pointerId) return;
-    this.#finishPointer(event, false, { x: 0, y: 0 });
+    this.#finishPointer(event, this.#moved, { x: 0, y: 0 }, this.#lastPointer);
   };
 
   #finishPointer(
     event: PointerEvent,
     moved: boolean,
     velocity: Readonly<Point>,
+    pointer: Readonly<Point> = { x: event.clientX, y: event.clientY },
   ): void {
     const pointerId = this.#pointerId;
     this.#pointerId = undefined;
@@ -248,10 +249,7 @@ export class CharacterInteractionController {
       }
     }
     this.#suppressClick = moved;
-    this.#options.onDragEnd(velocity, moved, {
-      x: event.clientX,
-      y: event.clientY,
-    });
+    this.#options.onDragEnd(velocity, moved, pointer);
   }
 
   #repair(): void {

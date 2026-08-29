@@ -128,13 +128,13 @@ path with a valid manifest hosted by the application:
 ```html
 <script
   defer
-  src="https://cdn.jsdelivr.net/npm/@peekling/runtime@0.1.1/dist/peekling.min.js"
+  src="https://cdn.jsdelivr.net/npm/@peekling/runtime@0.1.2/dist/peekling.min.js"
   integrity="sha384-<runtime-sri-from-build>"
   crossorigin="anonymous"
 ></script>
 <peekling-character
   pack-url="/peeklings/my-character/character.json"
-  styles-url="https://cdn.jsdelivr.net/npm/@peekling/runtime@0.1.1/dist/peekling.css"
+  styles-url="https://cdn.jsdelivr.net/npm/@peekling/runtime@0.1.2/dist/peekling.css"
   styles-integrity="sha256-<stylesheet-sri-from-build>"
 ></peekling-character>
 ```
@@ -219,15 +219,15 @@ Read the [`@peekling/cli`](packages/cli/README.md),
 ## Bundle budget
 
 The complete browser artifact has separate gzip and Brotli release gates. The
-0.1.1 record below measures the interaction and renderer release with the exact
+0.1.2 record below measures the interaction and renderer release with the exact
 release toolchain and required reserve.
 
 <!-- peekling-size-evidence:start -->
 
-The recorded canonical delivery measurement is 38,081 bytes gzip and 33,398
+The recorded canonical delivery measurement is 38,139 bytes gzip and 33,418
 bytes Brotli. Against the 40 KiB gzip and 40 KiB Brotli caps, that recorded
-build leaves 2,879 bytes of gzip headroom and 7,562 bytes of Brotli headroom.
-After the required 256-byte reserve, 2,623 gzip bytes and 7,306 Brotli bytes
+build leaves 2,821 bytes of gzip headroom and 7,542 bytes of Brotli headroom.
+After the required 256-byte reserve, 2,565 gzip bytes and 7,286 Brotli bytes
 remain for that build.
 <!-- peekling-size-evidence:end -->
 

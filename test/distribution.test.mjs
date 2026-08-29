@@ -68,7 +68,12 @@ test("readable and minified browser builds publish the same façade with matchin
     stylesheetIntegrity,
     `sha256-${createHash("sha256").update(stylesheet).digest("base64")}`,
   );
-  assert.doesNotMatch(stylesheet.toString("utf8"), /url\s*\(/i);
+  const css = stylesheet.toString("utf8");
+  assert.doesNotMatch(css, /url\s*\(/i);
+  assert.match(
+    css,
+    /\.peekling-character-hit\{[^}]*-webkit-tap-highlight-color:transparent[^}]*backface-visibility:hidden/,
+  );
 });
 
 test("a bundled bare browser import executes registration side effects", async () => {
