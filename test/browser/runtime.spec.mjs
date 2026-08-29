@@ -1841,8 +1841,13 @@ test("renderer keeps DPR snapping, lift, and a positive scale transform aligned"
     const insertRule = CSSStyleSheet.prototype.insertRule;
     CSSStyleSheet.prototype.insertRule = function (rule, index) {
       const inserted = insertRule.call(this, rule, index);
-      const style = this.cssRules[inserted]?.style;
-      if (style) window.peeklingRuleStyles.push(style);
+      const insertedRule = this.cssRules[inserted];
+      if (insertedRule?.style) {
+        window.peeklingRuleStyles.push({
+          selector: insertedRule.selectorText,
+          style: insertedRule.style,
+        });
+      }
       return inserted;
     };
   });
@@ -1850,6 +1855,7 @@ test("renderer keeps DPR snapping, lift, and a positive scale transform aligned"
   const initial = await page.evaluate(async () => {
     window.rendererInstance = window.Peekling.hatch({
       position: "center",
+      scale: 2,
       pack: {
         name: "renderer-fixture",
         displayName: "Renderer fixture",
@@ -1909,13 +1915,14 @@ test("renderer keeps DPR snapping, lift, and a positive scale transform aligned"
     return {
       x: Number(host.getAttribute("data-peekling-x")),
       y: Number(host.getAttribute("data-peekling-y")),
-      transform: window.peeklingRuleStyles.find((style) => style.transform)
-        ?.transform,
+      transform: window.peeklingRuleStyles.find(
+        ({ selector, style }) => selector === ".sprite" && style.transform,
+      )?.style.transform,
     };
   });
   expect(Number.isFinite(initial.x)).toBe(true);
   expect(Number.isFinite(initial.y)).toBe(true);
-  expect(initial.transform).toMatch(/translate3d\([^)]*\) scale\(1\)$/);
+  expect(initial.transform).toMatch(/translate3d\([^)]*\) scale\(2\)$/);
   await page.mouse.move(1_000, initial.y + 0.5);
   await expect
     .poll(() =>

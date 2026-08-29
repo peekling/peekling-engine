@@ -15,7 +15,7 @@ These commands run in Node and stay out of the browser runtime.
 Install the CLI as a development dependency:
 
 ```sh
-npm install --save-dev @peekling/cli@0.1.3
+npm install --save-dev @peekling/cli@0.1.4
 ```
 
 Run it through `npx` so the project-local version is used:

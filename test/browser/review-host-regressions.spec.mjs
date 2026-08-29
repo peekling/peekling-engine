@@ -300,6 +300,159 @@ test("a canceled touch drag falls instead of remaining suspended", async ({
   expect(result.second.y).toBeGreaterThan(result.first.y);
 });
 
+test("lost pointer ownership ends a drag without requiring a reload", async ({
+  page,
+}) => {
+  const result = await page.evaluate(async (input) => {
+    const roots = [];
+    const attachShadow = Element.prototype.attachShadow;
+    Element.prototype.attachShadow = function (options) {
+      const root = attachShadow.call(this, options);
+      roots.push(root);
+      return root;
+    };
+    const state = { frames: [0], fps: 1, loop: true };
+    const instance = Peekling.hatch({
+      ...input,
+      motionPreference: "full",
+      position: { x: 80, y: 80 },
+      pack: {
+        ...input.pack,
+        states: {
+          idle: state,
+          "scroll:fly": state,
+          "scroll:fall": state,
+          success: state,
+        },
+      },
+      interaction: { drag: true, throw: true, gravity: 1_600 },
+    });
+    await instance.ready;
+    const control = roots
+      .map((root) => root.querySelector(".peekling-character-hit"))
+      .find(Boolean);
+    if (!control)
+      throw new Error("Character interaction control was not mounted");
+    const pointer = (type, x, y, pointerId) =>
+      control.dispatchEvent(
+        new PointerEvent(type, {
+          bubbles: true,
+          buttons: type === "pointerdown" || type === "pointermove" ? 1 : 0,
+          clientX: x,
+          clientY: y,
+          isPrimary: true,
+          pointerId,
+          pointerType: "mouse",
+        }),
+      );
+    pointer("pointerdown", 80, 80, 9);
+    pointer("pointermove", 120, 140, 9);
+    pointer("lostpointercapture", 120, 140, 9);
+    const first = Number(
+      document
+        .querySelector("[data-peekling-host]")
+        .getAttribute("data-peekling-y"),
+    );
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    const host = document.querySelector("[data-peekling-host]");
+    const second = Number(host.getAttribute("data-peekling-y"));
+    const stateName = host.getAttribute("data-peekling-state");
+    pointer("pointerdown", 120, 140, 10);
+    pointer("pointermove", 160, 180, 10);
+    window.dispatchEvent(new Event("blur"));
+    const blurredFirst = Number(host.getAttribute("data-peekling-y"));
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    const blurredSecond = Number(host.getAttribute("data-peekling-y"));
+    const blurredState = host.getAttribute("data-peekling-state");
+    instance.destroy();
+    return {
+      first,
+      second,
+      stateName,
+      blurredFirst,
+      blurredSecond,
+      blurredState,
+    };
+  }, hatchInput());
+
+  expect(result.stateName).toBe("scroll:fall");
+  expect(result.second).toBeGreaterThan(result.first);
+  expect(result.blurredState).toBe("scroll:fall");
+  expect(result.blurredSecond).toBeGreaterThan(result.blurredFirst);
+});
+
+test("a fast document-level release cannot strand direct ownership", async ({
+  page,
+}) => {
+  const result = await page.evaluate(async (input) => {
+    const roots = [];
+    const attachShadow = Element.prototype.attachShadow;
+    Element.prototype.attachShadow = function (options) {
+      const root = attachShadow.call(this, options);
+      roots.push(root);
+      return root;
+    };
+    const state = { frames: [0], fps: 1, loop: true };
+    const instance = Peekling.hatch({
+      ...input,
+      motionPreference: "full",
+      position: { x: 100, y: 100 },
+      pack: {
+        ...input.pack,
+        states: {
+          idle: state,
+          "scroll:fly": state,
+          "scroll:fall": state,
+          success: state,
+        },
+      },
+      interaction: { drag: true, throw: true, gravity: 1_600 },
+    });
+    await instance.ready;
+    const control = roots
+      .map((root) => root.querySelector(".peekling-character-hit"))
+      .find(Boolean);
+    if (!control)
+      throw new Error("Character interaction control was not mounted");
+    const event = (type, x, y, buttons, pointerId = 11) =>
+      new PointerEvent(type, {
+        bubbles: true,
+        buttons,
+        clientX: x,
+        clientY: y,
+        isPrimary: true,
+        pointerId,
+        pointerType: "mouse",
+      });
+    control.dispatchEvent(event("pointerdown", 100, 100, 1));
+    control.dispatchEvent(event("pointermove", 180, 120, 1));
+    document.dispatchEvent(event("pointerup", 180, 120, 0));
+    const host = document.querySelector("[data-peekling-host]");
+    const firstX = Number(host.getAttribute("data-peekling-x"));
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    const secondX = Number(host.getAttribute("data-peekling-x"));
+    const stateName = host.getAttribute("data-peekling-state");
+    control.dispatchEvent(event("pointerdown", 180, 120, 1, 12));
+    control.dispatchEvent(event("pointermove", 220, 140, 1, 12));
+    control.dispatchEvent(event("pointermove", 260, 160, 0, 12));
+    const zeroButtonsFirstX = Number(host.getAttribute("data-peekling-x"));
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    const zeroButtonsSecondX = Number(host.getAttribute("data-peekling-x"));
+    instance.destroy();
+    return {
+      firstX,
+      secondX,
+      stateName,
+      zeroButtonsFirstX,
+      zeroButtonsSecondX,
+    };
+  }, hatchInput());
+
+  expect(result.stateName).not.toBe("scroll:fly");
+  expect(result.secondX).toBeGreaterThan(result.firstX);
+  expect(result.zeroButtonsSecondX).toBeGreaterThan(result.zeroButtonsFirstX);
+});
+
 test("full motion keeps direct touch physics active when the OS requests reduced motion", async ({
   page,
 }) => {

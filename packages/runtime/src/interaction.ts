@@ -95,6 +95,19 @@ export class CharacterInteractionController {
       this.#button.addEventListener("pointermove", this.#pointerMove);
       this.#button.addEventListener("pointerup", this.#pointerUp);
       this.#button.addEventListener("pointercancel", this.#pointerCancel);
+      this.#button.addEventListener(
+        "lostpointercapture",
+        this.#lostPointerCapture,
+      );
+      this.#document.defaultView?.addEventListener(
+        "pointerup",
+        this.#pointerUp,
+      );
+      this.#document.defaultView?.addEventListener(
+        "pointercancel",
+        this.#pointerCancel,
+      );
+      this.#document.defaultView?.addEventListener("blur", this.#windowBlur);
     }
     this.updateIndicator(options.indicator);
     this.#repair();
@@ -161,6 +174,26 @@ export class CharacterInteractionController {
   destroy(): void {
     if (this.#destroyed) return;
     this.#destroyed = true;
+    if (this.#options.draggable) {
+      this.#button.removeEventListener("pointerdown", this.#pointerDown);
+      this.#button.removeEventListener("pointermove", this.#pointerMove);
+      this.#button.removeEventListener("pointerup", this.#pointerUp);
+      this.#button.removeEventListener("pointercancel", this.#pointerCancel);
+      this.#button.removeEventListener(
+        "lostpointercapture",
+        this.#lostPointerCapture,
+      );
+      this.#document.defaultView?.removeEventListener(
+        "pointerup",
+        this.#pointerUp,
+      );
+      this.#document.defaultView?.removeEventListener(
+        "pointercancel",
+        this.#pointerCancel,
+      );
+      this.#document.defaultView?.removeEventListener("blur", this.#windowBlur);
+    }
+    this.#pointerId = undefined;
     this.#styles.destroy();
     this.#host.remove();
   }
@@ -192,7 +225,7 @@ export class CharacterInteractionController {
     try {
       this.#button.setPointerCapture(event.pointerId);
     } catch {
-      // Pointer capture is an optimization. Owned pointer listeners still work.
+      // Document release fallbacks still terminate this interaction safely.
     }
     this.#options.onDragStart();
   };
@@ -221,6 +254,9 @@ export class CharacterInteractionController {
       },
       this.#velocity,
     );
+    if (event.buttons === 0) {
+      this.#finishPointer(event, this.#moved, this.#velocity);
+    }
   };
 
   #pointerUp = (event: PointerEvent): void => {
@@ -233,12 +269,38 @@ export class CharacterInteractionController {
     this.#finishPointer(event, this.#moved, { x: 0, y: 0 }, this.#lastPointer);
   };
 
+  #lostPointerCapture = (event: PointerEvent): void => {
+    if (event.pointerId !== this.#pointerId) return;
+    this.#finishPointer(event, this.#moved, { x: 0, y: 0 }, this.#lastPointer);
+  };
+
+  #windowBlur = (): void => {
+    const pointerId = this.#pointerId;
+    if (pointerId === undefined) return;
+    this.#finishPointerById(
+      pointerId,
+      this.#moved,
+      { x: 0, y: 0 },
+      this.#lastPointer,
+    );
+  };
+
   #finishPointer(
     event: PointerEvent,
     moved: boolean,
     velocity: Readonly<Point>,
     pointer: Readonly<Point> = { x: event.clientX, y: event.clientY },
   ): void {
+    this.#finishPointerById(event.pointerId, moved, velocity, pointer);
+  }
+
+  #finishPointerById(
+    activePointerId: number,
+    moved: boolean,
+    velocity: Readonly<Point>,
+    pointer: Readonly<Point>,
+  ): void {
+    if (activePointerId !== this.#pointerId) return;
     const pointerId = this.#pointerId;
     this.#pointerId = undefined;
     if (pointerId !== undefined) {

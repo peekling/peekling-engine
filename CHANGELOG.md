@@ -2,6 +2,16 @@
 
 This file records changes by version.
 
+## 0.1.4
+
+- Ended direct drag ownership when pointer capture is lost or the browser window
+  loses focus.
+- Added document-level release and zero-buttons fallbacks for fast mouse
+  movement across a moving character hit target.
+- Preserved sampled throw velocity for valid releases and used a safe
+  zero-impulse fall for canceled interactions.
+- Kept the Plan contract, Configuration schema, and public API unchanged.
+
 ## 0.1.3
 
 - Added `motionPreference` with `system`, `full`, and `reduce` policies.

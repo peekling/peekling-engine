@@ -1,6 +1,6 @@
 # Character interaction and motion
 
-Peekling 0.1.3 uses one configuration model. Common behavior starts with a named
+Peekling 0.1.4 uses one configuration model. Common behavior starts with a named
 preset. Product-specific behavior uses the same JSON-safe Plan objects that
 power every other runtime feature. There is no expression language, script
 string, or second scheduler to learn.
@@ -114,6 +114,10 @@ available. A configured State name must still use the Pack State grammar.
 
 Reduced-motion mode preserves direct dragging. Release momentum and autonomous
 motion are suppressed, and the character settles on the safe floor position.
+
+Unexpected termination is fail-safe. A document- or window-level release keeps
+the sampled velocity. Pointer cancellation, lost capture, or window blur ends
+the drag with zero added impulse and lets gravity settle the character.
 
 ## Host targets and catching
 
