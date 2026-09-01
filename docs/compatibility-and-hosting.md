@@ -1,6 +1,6 @@
 # Browser compatibility and host constraints
 
-> [!IMPORTANT] This document describes the implemented `0.1.4` host contract and
+> [!IMPORTANT] This document describes the implemented `0.1.5` host contract and
 > its required release gates. Strict CSP, parked lifecycle behavior, and the
 > common hostile-host cases below have local Chromium, Firefox, and WebKit
 > coverage. This is bounded evidence, not a promise that every page, device, or
@@ -162,7 +162,7 @@ allowlists and is the recommended path for regulated environments.
 
 New instances default to `bottom-right`. The other presets are `bottom-left` and
 `center`. A host may instead supply bounded `{ x, y }` CSS-pixel coordinates,
-which clamp to the viewport. String coordinates are not part of the `0.1.4`
+which clamp to the viewport. String coordinates are not part of the `0.1.5`
 contract.
 
 Pack discovery is federated. The runtime has a small exact-version alias set and
@@ -225,7 +225,7 @@ constrained GPUs should set `maxDensity: 2` and run their own device matrix.
 
 Native format 1 uses PNG so the loader can verify byte signature, dimensions,
 alpha, and cell geometry consistently. SVG and vector renderers are outside the
-`0.1.4` format. Source raster density and logical frame size are separate.
+`0.1.5` format. Source raster density and logical frame size are separate.
 
 Normalized WebP input scans a bounded RIFF chunk sequence. ICCP, EXIF, and XMP
 metadata may precede VP8X, VP8, or VP8L image data. Truncated chunks, unknown
@@ -271,9 +271,9 @@ jsDelivr, loaded from UNPKG, or copied to a customer-controlled static host. The
 canonical exact-version examples are:
 
 ```text
-https://cdn.jsdelivr.net/npm/@peekling/runtime@0.1.4/dist/peekling.min.js
-https://unpkg.com/@peekling/runtime@0.1.4/dist/peekling.min.js
-https://static.example.com/peekling/0.1.4/peekling.min.js
+https://cdn.jsdelivr.net/npm/@peekling/runtime@0.1.5/dist/peekling.min.js
+https://unpkg.com/@peekling/runtime@0.1.5/dist/peekling.min.js
+https://static.example.com/peekling/0.1.5/peekling.min.js
 ```
 
 The build emits `peekling.js` for readable debugging, `peekling.min.js` for

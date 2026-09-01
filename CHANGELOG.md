@@ -2,6 +2,12 @@
 
 This file records changes by version.
 
+## 0.1.5
+
+- Raised the validated native Pack state limit from 64 to 128.
+- Added runtime and authoring coverage for 100-state character Packs.
+- Kept Pack validation bounded and rejected manifests above 128 states.
+
 ## 0.1.4
 
 - Ended direct drag ownership when pointer capture is lost or the browser window

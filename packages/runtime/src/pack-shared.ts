@@ -124,8 +124,8 @@ export function validateStateMap(
     return states;
   }
   const entries = Object.entries(input);
-  if (entries.length === 0 || entries.length > 64) {
-    addPackIssue(issues, "states.limit", "states must contain 1-64 entries");
+  if (entries.length === 0 || entries.length > 128) {
+    addPackIssue(issues, "states.limit", "states must contain 1-128 entries");
   }
   for (const [name, value] of entries) {
     const path = `states.${name}`;

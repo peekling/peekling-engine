@@ -193,8 +193,8 @@ export async function packAuthoringSource(
   const stateEntries = Object.entries(
     author.states as Record<string, AuthorState>,
   );
-  if (stateEntries.length < 1 || stateEntries.length > 64)
-    throw new Error("source.json states must contain 1 through 64 entries");
+  if (stateEntries.length < 1 || stateEntries.length > 128)
+    throw new Error("source.json states must contain 1 through 128 entries");
   const names: string[] = [];
   const packedIndex = new Map<string, number>();
   for (const [stateName, state] of stateEntries) {
