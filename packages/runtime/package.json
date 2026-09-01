@@ -1,6 +1,6 @@
 {
   "name": "@peekling/runtime",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Dependency-free browser runtime for interactive Peekling characters",
   "license": "Apache-2.0",
   "author": {

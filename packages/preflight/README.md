@@ -12,8 +12,8 @@ code. It is intended for development tools, tests, and CI.
 Install the runtime for the application and Preflight for development:
 
 ```sh
-npm install @peekling/runtime@0.1.4
-npm install --save-dev @peekling/preflight@0.1.4
+npm install @peekling/runtime@0.1.5
+npm install --save-dev @peekling/preflight@0.1.5
 ```
 
 `@peekling/preflight` declares the exact runtime version as a peer dependency.

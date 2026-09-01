@@ -1,7 +1,7 @@
 {
   "name": "@peekling/engine-workspace",
   "private": true,
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Public monorepo for the Peekling browser runtime and tightly coupled tools",
   "license": "Apache-2.0",
   "author": {

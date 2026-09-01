@@ -1488,10 +1488,22 @@ test("validator rejects hostile object shapes, names, paths, and numeric values"
     () => validateNativePack(descriptionUrl),
     /metadata\.description must not contain a URL/,
   );
+});
+
+test("native packs accept 100 states and reject more than 128", () => {
+  const supported = copyManifest();
+  for (let index = Object.keys(supported.states).length; index < 100; index++)
+    supported.states[`optional-${index}`] = {
+      frames: [0],
+      fps: 1,
+      loop: true,
+    };
+  assert.equal(Object.keys(validateNativePack(supported).states).length, 100);
+
   const crowded = copyManifest();
-  for (let index = 0; index < 70; index++)
+  for (let index = Object.keys(crowded.states).length; index < 129; index++)
     crowded.states[`optional-${index}`] = { frames: [0], fps: 1, loop: true };
-  assert.throws(() => validateNativePack(crowded), /1-64 entries/);
+  assert.throws(() => validateNativePack(crowded), /1-128 entries/);
 });
 
 test("direction resolver covers all eight screen-space octants", () => {

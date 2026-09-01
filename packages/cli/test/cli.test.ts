@@ -729,6 +729,48 @@ test("pack compiles row-authored named frames into deterministic dense cells", a
   }
 });
 
+test("pack authoring compiles a 100-state character", async () => {
+  const root = await temporary();
+  try {
+    const source = path.join(root, "source");
+    const output = path.join(root, "compiled");
+    await mkdir(source);
+    const states = Object.fromEntries(
+      Array.from({ length: 100 }, (_, index) => [
+        index === 0 ? "idle" : `reaction-${index}`,
+        {
+          row: 0,
+          frames: ["shared-pose"],
+          loop: true,
+          fps: 1,
+        },
+      ]),
+    );
+    await writeFile(
+      path.join(source, "source.json"),
+      JSON.stringify({
+        format: 1,
+        name: "hundred-state-fixture",
+        version: "0.1.0",
+        license: "CC0-1.0",
+        metadata: { description: "A one hundred state compiler fixture." },
+        logicalCellSize: 32,
+        sources: [{ density: 1, sheet: "source-1x.png", columns: 16, rows: 1 }],
+        states,
+      }),
+    );
+    await writeFile(path.join(source, "source-1x.png"), createFixtureAtlas(1));
+    await writeFile(path.join(source, "LICENSE"), "CC0-1.0\n");
+    await writeFile(path.join(source, "PROVENANCE.md"), "# Fixture\n");
+
+    await packAuthoringSource(source, output);
+
+    assert.equal((await validatePackDirectory(output)).states, 100);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
 test("pack authoring confines source paths and rejects unsafe limits before allocation", async () => {
   const root = await temporary();
   try {

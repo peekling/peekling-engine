@@ -1,6 +1,6 @@
 # Character interaction and motion
 
-Peekling 0.1.4 uses one configuration model. Common behavior starts with a named
+Peekling 0.1.5 uses one configuration model. Common behavior starts with a named
 preset. Product-specific behavior uses the same JSON-safe Plan objects that
 power every other runtime feature. There is no expression language, script
 string, or second scheduler to learn.
